@@ -3,6 +3,8 @@ const app = express();
 const cors = require("cors");
 const mongoose = require("mongoose");
 
+const authRoutes = require("./routes/auth");
+
 // dotenv config to use environment variables
 require("dotenv").config();
 
@@ -15,6 +17,9 @@ app.use(
   })
 );
 
+// parse json body
+app.use(express.json());
+
 // database connection
 mongoose
   .connect(process.env.MONGODB_URI)
@@ -25,6 +30,8 @@ mongoose
 app.get("/api/test", (req, res) => {
   res.json({ message: "Hello from Coder's Compass" });
 });
+
+app.use("/api/auth", authRoutes);
 
 // to start listening at port
 app.listen(port, () => {
