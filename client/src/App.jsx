@@ -1,22 +1,32 @@
-import { useState, useEffect } from 'react'
 import './App.css'
+import { AuthProvider } from './context/AuthContext';
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import Register from './pages/Register';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import Navbar from './components/Navbar';
+import ProtectedRoute from './components/ProtectedRoute';
+import HeroPage from './pages/HeroPage';
 
 function App() {
 
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    fetch("http://localhost:5000/api/test")
-      .then(res => res.json())
-      .then(data => setMessage(data.message))
-      .catch(err => console.log("Failed to Fetch: ", err));
-  }, [])
   return (
-    <div className="App">
-      <h1>Coder's Compass</h1>
-      <p>Message from server : <strong>{message || "Loading..."}</strong></p>
+    <AuthProvider>
+      <BrowserRouter>
+        <Navbar />
+        <Routes>
+          <Route path='/' element={<HeroPage />} />
+          <Route path='/login' element={<Login />} />
+          <Route path='/register' element={<Register />} />
+          <Route path='/dashboard' element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
 
-    </div>
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   )
 }
 
