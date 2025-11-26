@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useEffect, useCallback } from "react";
 
 export const AuthContext = createContext();
@@ -17,7 +18,6 @@ export const AuthProvider = ({ children }) => {
 
     const logout = useCallback(() => {
         try {
-            console.log('AuthContext.logout: clearing storage and state');
             localStorage.removeItem("token");
             localStorage.removeItem("user");
         } catch (e) {
