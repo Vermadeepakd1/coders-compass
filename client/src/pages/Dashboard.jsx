@@ -1,10 +1,10 @@
-import React, { useContext } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { AuthContext } from '../context/AuthContext'
 import { Activity, Zap, Terminal, Code, Hash, TrendingUp, Cpu } from 'lucide-react'
+import { getCodeforcesStats } from '../services/platformApi';
 
 // --- Mock Data ---
 const MOCK_STATS = [
-    { platform: 'Codeforces', rating: 1452, label: 'Specialist', icon: Terminal, color: 'text-cyan-400' },
     { platform: 'LeetCode', rating: 250, label: 'Problems Solved', icon: Code, color: 'text-yellow-500' },
     { platform: 'CodeChef', rating: 1600, label: '3 Star', icon: Hash, color: 'text-orange-500' },
 ];
@@ -59,7 +59,38 @@ const Heatmap = () => {
 };
 
 const Dashboard = () => {
-    const { user } = useContext(AuthContext)
+    const [cfData, setCfData] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const { user } = useContext(AuthContext);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+
+            // check if user exists and has handle
+
+            if (!user?.handles?.codeforces) {
+                setIsLoading(false);
+                setError("Link your account");
+                return;
+            }
+
+            try {
+                setIsLoading(true);
+                const data = await getCodeforcesStats(user.handles.codeforces);
+                setCfData(data);
+                setError(null);
+            } catch (error) {
+                console.error("Failed to fetch stats:", error);
+                setError(("could not fetch data"));
+            } finally {
+                setIsLoading(false);
+            }
+
+        };
+        fetchStats();
+    }, [user]);
+
 
     return (
         <div className="min-h-screen bg-[#0c1618] pb-12">
@@ -83,6 +114,47 @@ const Dashboard = () => {
 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                    {/* --- Codeforces Card (Real Data) --- */}
+                    {isLoading ? (
+                        <div className="bg-[#111f22] border border-gray-800/50 rounded-xl p-6 shadow-xl flex items-center justify-center min-h-[140px]">
+                            <span className="text-gray-400 animate-pulse">Loading stats...</span>
+                        </div>
+                    ) : error ? (
+                        <div className="bg-[#111f22] border border-red-900/30 rounded-xl p-6 shadow-xl flex items-center justify-center min-h-[140px]">
+                            <span className="text-red-400">{error}</span>
+                        </div>
+                    ) : cfData ? (
+                        <div className="bg-[#111f22] p-6 rounded-xl shadow-xl border-l-4 border-blue-500 relative overflow-hidden group hover:border-blue-400 transition-colors">
+                            <h3 className="text-xl font-bold text-white">Codeforces</h3>
+
+                            <div className="flex items-center mt-4 relative z-10">
+                                {/* Avatar Image */}
+                                <img
+                                    src={cfData.titlePhoto}
+                                    alt="Avatar"
+                                    className="w-16 h-16 rounded-full border-2 border-gray-700 object-cover"
+                                />
+
+                                <div className="ml-4">
+                                    <p className="text-gray-400 text-sm">Rating</p>
+                                    {/* Dynamic Color: Green if > 1200, else gray */}
+                                    <span className={`text-2xl font-bold ${cfData.rating > 1200 ? 'text-green-400' : 'text-gray-400'}`}>
+                                        {cfData.rating}
+                                    </span>
+                                    <span className="text-sm text-gray-500 ml-2">({cfData.rank})</span>
+                                </div>
+                            </div>
+
+                            {/* Decorative Icon */}
+                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
+                                <Terminal size={100} className="text-white" />
+                            </div>
+                        </div>
+                    ) : null}
+
+
+                    {/* other platforms mock data */}
                     {MOCK_STATS.map((stat) => (
                         <div key={stat.platform} className="bg-[#111f22] border border-gray-800/50 rounded-xl p-6 shadow-xl backdrop-blur-sm relative overflow-hidden group hover:border-[#4ecdc4]/50 transition-colors">
                             <div className={`absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500`}>
@@ -138,8 +210,8 @@ const Dashboard = () => {
                                 >
                                     <div className="flex items-center gap-4">
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${prob.difficulty === 'Easy' ? 'bg-green-500/10 text-green-400' :
-                                                prob.difficulty === 'Medium' ? 'bg-yellow-500/10 text-yellow-400' :
-                                                    'bg-red-500/10 text-red-400'
+                                            prob.difficulty === 'Medium' ? 'bg-yellow-500/10 text-yellow-400' :
+                                                'bg-red-500/10 text-red-400'
                                             }`}>
                                             <Code size={20} />
                                         </div>
@@ -171,15 +243,15 @@ const Dashboard = () => {
                                         <div className="flex justify-between items-end mb-2">
                                             <span className="text-sm font-medium text-gray-300">{skill.name}</span>
                                             <span className={`text-xs font-bold ${skill.status === 'Strong' ? 'text-green-400' :
-                                                    skill.status === 'Weak' ? 'text-yellow-400' :
-                                                        skill.status === 'Critical' ? 'text-red-400' : 'text-blue-400'
+                                                skill.status === 'Weak' ? 'text-yellow-400' :
+                                                    skill.status === 'Critical' ? 'text-red-400' : 'text-blue-400'
                                                 }`}>{skill.status}</span>
                                         </div>
                                         <div className="h-2 w-full bg-gray-800 rounded-full overflow-hidden">
                                             <div
                                                 className={`h-full rounded-full transition-all duration-1000 ease-out ${skill.status === 'Strong' ? 'bg-green-500' :
-                                                        skill.status === 'Weak' ? 'bg-yellow-500' :
-                                                            skill.status === 'Critical' ? 'bg-red-500' : 'bg-blue-500'
+                                                    skill.status === 'Weak' ? 'bg-yellow-500' :
+                                                        skill.status === 'Critical' ? 'bg-red-500' : 'bg-blue-500'
                                                     }`}
                                                 style={{ width: `${skill.score}%` }}
                                             ></div>
