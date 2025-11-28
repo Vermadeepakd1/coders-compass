@@ -1,11 +1,10 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { AuthContext } from '../context/AuthContext'
 import { Activity, Zap, Terminal, Code, Hash, TrendingUp, Cpu } from 'lucide-react'
-import { getCodeforcesStats } from '../services/platformApi';
+import { getCodeforcesStats, getLeetCodeStats } from '../services/platformApi';
 
 // --- Mock Data ---
 const MOCK_STATS = [
-    { platform: 'LeetCode', rating: 250, label: 'Problems Solved', icon: Code, color: 'text-yellow-500' },
     { platform: 'CodeChef', rating: 1600, label: '3 Star', icon: Hash, color: 'text-orange-500' },
 ];
 
@@ -60,6 +59,7 @@ const Heatmap = () => {
 
 const Dashboard = () => {
     const [cfData, setCfData] = useState(null);
+    const [lcData, setLcData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const { user } = useContext(AuthContext);
@@ -67,28 +67,36 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchStats = async () => {
 
-            // check if user exists and has handle
+            const cfHandle = user?.handles?.codeforces;
+            const lcHandle = user?.handles?.leetcode;
 
-            if (!user?.handles?.codeforces) {
+            // check if user exists and has handle
+            if (!cfHandle && !lcHandle) {
                 setIsLoading(false);
                 setError("Link your account");
                 return;
             }
-
+            setIsLoading(true);
+            setError(null);
             try {
-                setIsLoading(true);
-                const data = await getCodeforcesStats(user.handles.codeforces);
-                setCfData(data);
-                setError(null);
+                // We use Promise.allSettled so if one fails, the other still shows up!
+                const [cfRes, lcRes] = await Promise.allSettled([
+                    cfHandle ? getCodeforcesStats(cfHandle) : Promise.resolve(null),
+                    lcHandle ? getLeetCodeStats(lcHandle) : Promise.resolve(null)
+                ]);
+
+                if (cfRes.status === 'fulfilled') setCfData(cfRes.value);
+                if (lcRes.status === 'fulfilled') setLcData(lcRes.value);
             } catch (error) {
-                console.error("Failed to fetch stats:", error);
-                setError(("could not fetch data"));
+                console.log("failed to load data", error);
+                setError("Failed to load some data");
             } finally {
                 setIsLoading(false);
             }
 
         };
-        fetchStats();
+        if (user)
+            fetchStats();
     }, [user]);
 
 
@@ -149,6 +157,35 @@ const Dashboard = () => {
                             {/* Decorative Icon */}
                             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
                                 <Terminal size={100} className="text-white" />
+                            </div>
+                        </div>
+                    ) : null}
+
+                    {/* --- LeetCode Card (Real Data) --- */}
+                    {lcData ? (
+                        <div className="bg-[#111f22] p-6 rounded-xl shadow-xl border-l-4 border-yellow-500 relative overflow-hidden group hover:border-yellow-400 transition-colors">
+                            <h3 className="text-xl font-bold text-white">LeetCode</h3>
+
+                            <div className="flex items-center mt-4 relative z-10">
+                                {/* Avatar Image (LeetCode doesn't always give avatar, use fallback or icon) */}
+                                <div className="w-16 h-16 rounded-full border-2 border-gray-700 bg-gray-800 flex items-center justify-center text-yellow-500">
+                                    <Code size={32} />
+                                </div>
+
+                                <div className="ml-4">
+                                    <p className="text-gray-400 text-sm">Total Solved</p>
+                                    <span className="text-2xl font-bold text-yellow-400">
+                                        {lcData.totalSolved}
+                                    </span>
+                                    <span className="text-sm text-gray-500 ml-2">
+                                        (Easy: {lcData.easy}, Med: {lcData.medium}, Hard: {lcData.hard})
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Decorative Icon */}
+                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
+                                <Code size={100} className="text-white" />
                             </div>
                         </div>
                     ) : null}
