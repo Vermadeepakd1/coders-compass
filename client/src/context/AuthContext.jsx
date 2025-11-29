@@ -5,6 +5,7 @@ export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     const login = useCallback((userData, token) => {
         try {
@@ -29,17 +30,29 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         try {
             const token = localStorage.getItem('token');
-            if (token) {
-                console.log("token exists in local storage")
+            const userStored = localStorage.getItem('user');
+
+            if (token && userStored) {
+                //Parse the string back into an object
+                setUser(JSON.parse(userStored));
+            } else {
+                // If data is inconsistent (e.g. token exists but no user data), clear it
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                setUser(null);
             }
         } catch (error) {
             console.error("Failed to read auth data from local storage", error);
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
             setUser(null);
+        } finally {
+            setLoading(false);
         }
 
     }, []);
 
-    return <AuthContext.Provider value={{ user, login, logout }}>
+    return <AuthContext.Provider value={{ user, login, logout, loading }}>
         {children}
     </AuthContext.Provider>
 
