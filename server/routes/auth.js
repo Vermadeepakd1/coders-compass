@@ -3,7 +3,7 @@ const router = express.Router();
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-const { protect } = require("../middleware/authMiddleware");
+const protect = require("../middleware/authMiddleware");
 
 // POST /register
 router.post("/register", async (req, res) => {
@@ -69,9 +69,11 @@ router.post("/login", async (req, res) => {
       return res.status(500).json({ error: "JWT secret not configured" });
     }
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "2h",
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
     });
+
+    console.log("Token created with id:", user._id); // DEBUG
 
     res.status(200).json({
       message: "login Successful!",
@@ -88,7 +90,7 @@ router.post("/login", async (req, res) => {
 
 // GET /test
 // to test protect middleware
-router.get("/test", protect, (req, res) => {
+router.get("/test", protect, async (req, res) => {
   res.json({ message: "You are authorized!!", user: req.user });
 });
 

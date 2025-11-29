@@ -1,33 +1,40 @@
 const jwt = require("jsonwebtoken");
+const User = require("../models/User");
 
-function protect(req, res, next) {
-  const authHeader =
-    req.headers["authorization"] || req.headers["Authorization"];
+const protect = async (req, res, next) => {
+  let token;
+  console.log("Auth Header:", req.headers.authorization);
 
-  if (!authHeader) {
-    return res.status(401).json({ error: "No authorization header" });
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    try {
+      // Get token from header
+      token = req.headers.authorization.split(" ")[1];
+
+      console.log("Token received:", token); // DEBUG
+
+      // Verify token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      console.log("Decoded:", decoded); // DEBUG
+
+      // Get user from token (exclude password)
+      req.user = await User.findById(decoded.id).select("-password");
+      if (!req.user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      next();
+    } catch (error) {
+      console.error(error);
+      res.status(401).json({ message: "Not authorized, token failed" });
+    }
   }
-
-  // support "Bearer <token>" and plain token
-  const parts = authHeader.split(" ");
-  const token =
-    parts.length === 2 && parts[0].toLowerCase() === "bearer"
-      ? parts[1]
-      : parts[0];
 
   if (!token) {
-    return res.status(401).json({ error: "No valid token found" });
+    res.status(401).json({ message: "Not authorized, no token" });
   }
+};
 
-  if (!process.env.JWT_SECRET) {
-    return res.status(500).json({ error: "JWT secret not configured" });
-  }
-
-  jwt.verify(token.trim(), process.env.JWT_SECRET, (err, decoded) => {
-    if (err) return res.status(403).json({ error: "Invalid Token" });
-    req.user = decoded;
-    next();
-  });
-}
-
-module.exports = { protect };
+module.exports = protect;
