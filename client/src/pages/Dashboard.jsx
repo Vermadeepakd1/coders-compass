@@ -2,6 +2,8 @@ import React, { useContext, useEffect, useState } from 'react'
 import { AuthContext } from '../context/AuthContext'
 import { Activity, Zap, Terminal, Code, Hash, TrendingUp, Cpu } from 'lucide-react'
 import { getCodeforcesStats, getLeetCodeStats } from '../services/platformApi';
+import ActivityGraph from '../components/ActivityGraph';
+
 
 // --- Mock Data ---
 const MOCK_STATS = [
@@ -62,7 +64,31 @@ const Dashboard = () => {
     const [lcData, setLcData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [history, setHistory] = useState([]);
+
     const { user } = useContext(AuthContext);
+
+    const getHistory = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/platforms/history`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+            const result = await response.json();
+            if (result.data && Array.isArray(result.data)) {
+                setHistory(result.data);
+            } else {
+                setHistory([]);
+            }
+        } catch (error) {
+            console.error("error in getting history", error);
+            setHistory([]);
+        }
+    }
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -95,8 +121,10 @@ const Dashboard = () => {
             }
 
         };
-        if (user)
+        if (user) {
             fetchStats();
+            getHistory();
+        }
     }, [user]);
 
 
@@ -207,6 +235,23 @@ const Dashboard = () => {
                             </div>
                         </div>
                     ))}
+                </div>
+
+                {/* Render Activity Graph section  */}
+                <div className="bg-[#111f22] border border-gray-800/50 rounded-xl p-6 shadow-xl backdrop-blur-sm w-full">
+                    <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+                        <TrendingUp size={18} className="text-[#4ecdc4]" />
+                        Rating History
+                    </h3>
+                    {history.length > 0 ? (
+                        <ActivityGraph data={history} />
+                    ) : (
+                        <div className="h-64 flex flex-col items-center justify-center text-gray-500">
+                            <Activity size={48} className="mb-2 opacity-20" />
+                            <p>No history data available yet.</p>
+                            <p className="text-xs mt-1">Solve problems to build your graph!</p>
+                        </div>
+                    )}
                 </div>
 
                 {/* Heatmap Section */}
