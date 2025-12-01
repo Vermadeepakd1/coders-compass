@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState, useCallback } from 'react'
 import { AuthContext } from '../context/AuthContext'
 import { Activity, Zap, Terminal, Code, Hash, TrendingUp, Cpu } from 'lucide-react'
 import { getCodeforcesStats, getLeetCodeStats } from '../services/platformApi';
@@ -68,7 +68,8 @@ const Dashboard = () => {
 
     const { user } = useContext(AuthContext);
 
-    const getHistory = async () => {
+    // Helper to fetch history
+    const fetchHistory = useCallback(async () => {
         try {
             const token = localStorage.getItem("token");
             const response = await fetch(`${import.meta.env.VITE_API_URL}/api/platforms/history`,
@@ -88,44 +89,48 @@ const Dashboard = () => {
             console.error("error in getting history", error);
             setHistory([]);
         }
-    }
+    }, []);
 
-    useEffect(() => {
-        const fetchStats = async () => {
+    // Main refresh function
+    const refreshData = useCallback(async () => {
+        const cfHandle = user?.handles?.codeforces;
+        const lcHandle = user?.handles?.leetcode;
 
-            const cfHandle = user?.handles?.codeforces;
-            const lcHandle = user?.handles?.leetcode;
-
-            // check if user exists and has handle
-            if (!cfHandle && !lcHandle) {
-                setIsLoading(false);
-                setError("Link your account");
-                return;
-            }
-            setIsLoading(true);
-            setError(null);
-            try {
-                // We use Promise.allSettled so if one fails, the other still shows up!
-                const [cfRes, lcRes] = await Promise.allSettled([
-                    cfHandle ? getCodeforcesStats(cfHandle) : Promise.resolve(null),
-                    lcHandle ? getLeetCodeStats(lcHandle) : Promise.resolve(null)
-                ]);
-
-                if (cfRes.status === 'fulfilled') setCfData(cfRes.value);
-                if (lcRes.status === 'fulfilled') setLcData(lcRes.value);
-            } catch (error) {
-                console.log("failed to load data", error);
-                setError("Failed to load some data");
-            } finally {
-                setIsLoading(false);
-            }
-
-        };
-        if (user) {
-            fetchStats();
-            getHistory();
+        // check if user exists and has handle
+        if (!cfHandle && !lcHandle) {
+            setIsLoading(false);
+            setError("Link your account");
+            return;
         }
-    }, [user]);
+
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            // Run all fetches in parallel
+            const [cfRes, lcRes] = await Promise.allSettled([
+                cfHandle ? getCodeforcesStats(cfHandle) : Promise.resolve(null),
+                lcHandle ? getLeetCodeStats(lcHandle) : Promise.resolve(null),
+                fetchHistory() // Add history to the promise chain
+            ]);
+
+            if (cfRes.status === 'fulfilled') setCfData(cfRes.value);
+            if (lcRes.status === 'fulfilled') setLcData(lcRes.value);
+
+        } catch (error) {
+            console.log("failed to load data", error);
+            setError("Failed to load some data");
+        } finally {
+            setIsLoading(false);
+        }
+    }, [user, fetchHistory]);
+
+    // Initial load
+    useEffect(() => {
+        if (user) {
+            refreshData();
+        }
+    }, [user, refreshData]);
 
 
     return (
@@ -139,9 +144,16 @@ const Dashboard = () => {
                         <p className="text-gray-400 mt-1">Track your progress across all platforms.</p>
                     </div>
                     <div className="flex gap-2">
-                        <button className="px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 border border-[#4ecdc4] text-[#4ecdc4] hover:bg-[#4ecdc4]/10 text-sm h-9">
-                            <Activity size={16} /> Sync Stats
+                        {/* Sync Stats Button */}
+                        <button
+                            onClick={refreshData}
+                            disabled={isLoading}
+                            className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 border border-[#4ecdc4] text-[#4ecdc4] hover:bg-[#4ecdc4]/10 text-sm h-9 ${isLoading ? 'opacity-70 cursor-wait' : ''}`}
+                        >
+                            <Activity size={16} className={isLoading ? "animate-spin" : ""} />
+                            {isLoading ? "Syncing..." : "Sync Stats"}
                         </button>
+
                         <button className="px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 bg-[#4ecdc4] text-[#0c1618] hover:opacity-90 shadow-[0_0_15px_-3px_rgba(78,205,196,0.3)] text-sm h-9">
                             <Zap size={16} /> Daily Challenge
                         </button>
@@ -152,7 +164,7 @@ const Dashboard = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
                     {/* --- Codeforces Card (Real Data) --- */}
-                    {isLoading ? (
+                    {isLoading && !cfData ? (
                         <div className="bg-[#111f22] border border-gray-800/50 rounded-xl p-6 shadow-xl flex items-center justify-center min-h-[140px]">
                             <span className="text-gray-400 animate-pulse">Loading stats...</span>
                         </div>
