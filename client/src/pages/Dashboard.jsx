@@ -3,6 +3,7 @@ import { AuthContext } from '../context/AuthContext'
 import { Activity, Zap, Terminal, Code, Hash, TrendingUp, Cpu } from 'lucide-react'
 import { getCodeforcesStats, getLeetCodeStats } from '../services/platformApi';
 import ActivityGraph from '../components/ActivityGraph';
+import AiCoach from '../components/AiCoach';
 
 
 // --- Mock Data ---
@@ -134,30 +135,20 @@ const Dashboard = () => {
 
 
     return (
-        <div className="min-h-screen bg-[#0c1618] pb-12">
+        <div className="min-h-screen bg-[#0c1618] pb-12 relative">
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-8">
 
-                {/* Welcome Section */}
-                <div className="flex flex-col md:flex-row justify-between items-end gap-4">
-                    <div>
-                        <h2 className="text-2xl font-bold text-white">Welcome back, {user?.username || 'Developer'}</h2>
-                        <p className="text-gray-400 mt-1">Track your progress across all platforms.</p>
-                    </div>
-                    <div className="flex gap-2">
-                        {/* Sync Stats Button */}
-                        <button
-                            onClick={refreshData}
-                            disabled={isLoading}
-                            className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 border border-[#4ecdc4] text-[#4ecdc4] hover:bg-[#4ecdc4]/10 text-sm h-9 ${isLoading ? 'opacity-70 cursor-wait' : ''}`}
-                        >
-                            <Activity size={16} className={isLoading ? "animate-spin" : ""} />
-                            {isLoading ? "Syncing..." : "Sync Stats"}
-                        </button>
-
-                        <button className="px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 bg-[#4ecdc4] text-[#0c1618] hover:opacity-90 shadow-[0_0_15px_-3px_rgba(78,205,196,0.3)] text-sm h-9">
-                            <Zap size={16} /> Daily Challenge
-                        </button>
-                    </div>
+                {/* Header Section */}
+                <div className="flex justify-between items-center mb-6">
+                    <h1 className="text-2xl font-bold text-white">Welcome, {user?.username || 'Developer'}</h1>
+                    <button
+                        onClick={refreshData}
+                        disabled={isLoading}
+                        className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 border border-[#4ecdc4] text-[#4ecdc4] hover:bg-[#4ecdc4]/10 text-sm h-9 ${isLoading ? 'opacity-70 cursor-wait' : ''}`}
+                    >
+                        <Activity size={16} className={isLoading ? "animate-spin" : ""} />
+                        {isLoading ? "Syncing..." : "Refresh Stats"}
+                    </button>
                 </div>
 
                 {/* Stats Grid */}
@@ -168,33 +159,21 @@ const Dashboard = () => {
                         <div className="bg-[#111f22] border border-gray-800/50 rounded-xl p-6 shadow-xl flex items-center justify-center min-h-[140px]">
                             <span className="text-gray-400 animate-pulse">Loading stats...</span>
                         </div>
-                    ) : error ? (
+                    ) : error && !cfData ? (
                         <div className="bg-[#111f22] border border-red-900/30 rounded-xl p-6 shadow-xl flex items-center justify-center min-h-[140px]">
                             <span className="text-red-400">{error}</span>
                         </div>
                     ) : cfData ? (
                         <div className="bg-[#111f22] p-6 rounded-xl shadow-xl border-l-4 border-blue-500 relative overflow-hidden group hover:border-blue-400 transition-colors">
                             <h3 className="text-xl font-bold text-white">Codeforces</h3>
-
                             <div className="flex items-center mt-4 relative z-10">
-                                {/* Avatar Image */}
-                                <img
-                                    src={cfData.titlePhoto}
-                                    alt="Avatar"
-                                    className="w-16 h-16 rounded-full border-2 border-gray-700 object-cover"
-                                />
-
+                                <img src={cfData.titlePhoto} alt="Avatar" className="w-16 h-16 rounded-full border-2 border-gray-700 object-cover" />
                                 <div className="ml-4">
                                     <p className="text-gray-400 text-sm">Rating</p>
-                                    {/* Dynamic Color: Green if > 1200, else gray */}
-                                    <span className={`text-2xl font-bold ${cfData.rating > 1200 ? 'text-green-400' : 'text-gray-400'}`}>
-                                        {cfData.rating}
-                                    </span>
+                                    <span className={`text-2xl font-bold ${cfData.rating > 1200 ? 'text-green-400' : 'text-gray-400'}`}>{cfData.rating}</span>
                                     <span className="text-sm text-gray-500 ml-2">({cfData.rank})</span>
                                 </div>
                             </div>
-
-                            {/* Decorative Icon */}
                             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
                                 <Terminal size={100} className="text-white" />
                             </div>
@@ -205,31 +184,21 @@ const Dashboard = () => {
                     {lcData ? (
                         <div className="bg-[#111f22] p-6 rounded-xl shadow-xl border-l-4 border-yellow-500 relative overflow-hidden group hover:border-yellow-400 transition-colors">
                             <h3 className="text-xl font-bold text-white">LeetCode</h3>
-
                             <div className="flex items-center mt-4 relative z-10">
-                                {/* Avatar Image (LeetCode doesn't always give avatar, use fallback or icon) */}
                                 <div className="w-16 h-16 rounded-full border-2 border-gray-700 bg-gray-800 flex items-center justify-center text-yellow-500">
                                     <Code size={32} />
                                 </div>
-
                                 <div className="ml-4">
                                     <p className="text-gray-400 text-sm">Total Solved</p>
-                                    <span className="text-2xl font-bold text-yellow-400">
-                                        {lcData.totalSolved}
-                                    </span>
-                                    <span className="text-sm text-gray-500 ml-2">
-                                        (Easy: {lcData.easy}, Med: {lcData.medium}, Hard: {lcData.hard})
-                                    </span>
+                                    <span className="text-2xl font-bold text-yellow-400">{lcData.totalSolved}</span>
+                                    <span className="text-sm text-gray-500 ml-2">(Easy: {lcData.easy}, Med: {lcData.medium}, Hard: {lcData.hard})</span>
                                 </div>
                             </div>
-
-                            {/* Decorative Icon */}
                             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
                                 <Code size={100} className="text-white" />
                             </div>
                         </div>
                     ) : null}
-
 
                     {/* other platforms mock data */}
                     {MOCK_STATS.map((stat) => (
@@ -372,6 +341,9 @@ const Dashboard = () => {
 
                 </div>
             </main>
+
+            {/* Floating AI Coach - Placed outside the main grid flow */}
+            <AiCoach />
         </div>
     )
 }

@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 
 const authRoutes = require("./routes/auth");
 const platformRoutes = require("./routes/platformRoutes");
+const aiRoutes = require("./routes/aiRoutes");
 
 // dotenv config to use environment variables
 require("dotenv").config();
@@ -34,6 +35,7 @@ app.get("/api/test", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/platforms", platformRoutes);
+app.use("/api/ai", aiRoutes);
 
 // to start listening at port
 app.listen(port, () => {

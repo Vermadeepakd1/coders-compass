@@ -26,19 +26,20 @@ const userSchema = new mongoose.Schema(
       codechef: { type: String, default: "" },
       leetcode: { type: String, default: "" },
     },
+    lastAiRequest: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );
 
-// hash password before saving
+// hash password before saving - async functions don't use next()
 userSchema.pre("save", async function () {
-  if (!this.isModified("password")) return next;
-  try {
-    const saltRounds = 10;
-    this.password = await bcrypt.hash(this.password, saltRounds);
-  } catch (error) {
-    throw error;
-  }
+  if (!this.isModified("password")) return;
+
+  const saltRounds = 10;
+  this.password = await bcrypt.hash(this.password, saltRounds);
 });
 
 // helper to compare password
