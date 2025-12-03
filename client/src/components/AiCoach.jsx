@@ -8,6 +8,13 @@ import 'katex/dist/katex.min.css';
 import { askAiHint } from '../services/aiApi';
 import { MessageSquare, X, Send, Minimize2, Maximize2, Bot } from 'lucide-react';
 
+const SUGGESTIONS = [
+    "Give me a hint",
+    "What is the intuition?",
+    "Is there a better approach?",
+    "What are the edge cases?"
+];
+
 const AiCoach = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
@@ -39,11 +46,14 @@ const AiCoach = () => {
         setInput('');
     };
 
-    const sendMessage = async (e) => {
-        e.preventDefault();
-        if (!input.trim() || loading) return;
+    const sendMessage = async (e, overrideText = null) => {
+        if (e) e.preventDefault();
 
-        const userMsg = { role: 'user', text: input };
+        const textToSend = overrideText || input;
+
+        if (!textToSend.trim() || loading) return;
+
+        const userMsg = { role: 'user', text: textToSend };
         const newHistory = [...messages, userMsg];
         setMessages(newHistory);
         setInput('');
@@ -215,6 +225,21 @@ const AiCoach = () => {
                                 )}
                                 <div ref={messagesEndRef} />
                             </div>
+
+                            {/* Suggestion Chips */}
+                            {!loading && messages.length > 0 && (
+                                <div className="px-4 py-2 flex gap-2 overflow-x-auto thin-scrollbar">
+                                    {SUGGESTIONS.map((text) => (
+                                        <button
+                                            key={text}
+                                            onClick={() => sendMessage(null, text)}
+                                            className="text-xs bg-[#111f22] text-[#4ecdc4] px-3 py-1 rounded-full hover:bg-[#4ecdc4]/10 transition border border-[#4ecdc4]/30 whitespace-nowrap"
+                                        >
+                                            {text}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
 
                             <form onSubmit={sendMessage} className="p-3 bg-[#111f22] border-t border-gray-800 flex gap-2">
                                 <input

@@ -1,49 +1,65 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-require("dotenv").config();
+const redis = require("../config/redis"); // Import our new Redis connection
+const crypto = require("crypto"); // Built-in Node module for hashing
+
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
-/**
- * Generates a hint based on problem context and chat history.
- * @param {string} problemContext - The problem link or description.
- * @param {Array} chatHistory - Array of messages: [{ role: 'user', text: '...' }, { role: 'ai', text: '...' }]
- * @returns {Promise<string>} - The AI generated hint.
- */
-const getAiHint = async (problemContext, chatHistory) => {
-  // 1. Format the history into a string the AI can read
+const getAiHint = async (problemLink, chatHistory) => {
+  // --- 1. GENERATE CACHE KEY ---
+  // We turn the complex history array into a short, unique string (Hash)
+  const historyString = JSON.stringify(chatHistory);
+  const hash = crypto.createHash("sha256").update(historyString).digest("hex");
+
+  // Key format: "hint:<problem>:<hash>"
+  const cacheKey = `hint:${problemLink}:${hash}`;
+
+  // --- 2. CHECK REDIS (Read Aside) ---
+  let cachedResult = null;
+  try {
+    cachedResult = await redis.get(cacheKey);
+  } catch (err) {
+    console.error("Redis Read Error (Skipping Cache):", err.message);
+  }
+
+  if (cachedResult) {
+    console.log("Redis Cache HIT ⚡"); // Watch your terminal for this!
+    return cachedResult;
+  }
+
+  console.log("Redis Cache MISS 🔴 (Calling Gemini)");
+
+  // --- 3. CALL GEMINI (If Cache Miss) ---
   const conversationLog = chatHistory
     .map((msg) => `${msg.role === "user" ? "Student" : "Coach"}: ${msg.text}`)
     .join("\n");
 
-  // 2. Construct the System Prompt
   const prompt = `
     ROLE: You are a world-class competitive programming coach.
     TASK: Help a student who is stuck on a problem.
-    
-    CONTEXT:
-    The student is working on: ${problemContext}
-    
-    RULES:
-    1. NO CODE SOLUTIONS. Do not write code blocks.
-    2. Guide them with logic, algorithms, or edge cases.
-    3. Keep responses conversational and encouraging.
-    4. If they ask a new question, refer to previous context if needed.
-    5. Use LaTeX for math expressions (e.g., $x$, $\frac{a}{b}$).
-    6. Use standard Markdown for bolding and lists.
-    
-    CONVERSATION HISTORY:
+    CONTEXT: The student is working on: ${problemLink}
+    RULES: NO CODE SOLUTIONS. Hints Only. Conversational.
+    HISTORY:
     ${conversationLog}
-    
-    YOUR RESPONSE (As Coach):
+    RESPONSE:
   `;
 
   try {
     const result = await model.generateContent(prompt);
-    console.log(result.response.text());
-    return result.response.text();
+    const aiResponse = result.response.text();
+
+    // --- 4. SAVE TO REDIS (Write Aside) ---
+    // Save the answer for 24 hours (86400 seconds)
+    try {
+      await redis.set(cacheKey, aiResponse, "EX", 86400);
+    } catch (err) {
+      console.error("Redis Write Error:", err.message);
+    }
+
+    return aiResponse;
   } catch (error) {
     console.error("AI Service Error:", error);
-    return "I'm having trouble thinking right now. Please try again.";
+    return "I'm having trouble thinking right now.";
   }
 };
 

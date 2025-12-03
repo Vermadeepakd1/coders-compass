@@ -3,12 +3,12 @@ const app = express();
 const cors = require("cors");
 const mongoose = require("mongoose");
 
+// dotenv config to use environment variables
+require("dotenv").config();
+
 const authRoutes = require("./routes/auth");
 const platformRoutes = require("./routes/platformRoutes");
 const aiRoutes = require("./routes/aiRoutes");
-
-// dotenv config to use environment variables
-require("dotenv").config();
 
 const port = process.env.PORT || 5000;
 
