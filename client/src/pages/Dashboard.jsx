@@ -1,21 +1,14 @@
 import React, { useContext, useEffect, useState, useCallback } from 'react'
 import { AuthContext } from '../context/AuthContext'
 import { Activity, Zap, Terminal, Code, Hash, TrendingUp, Cpu } from 'lucide-react'
-import { getCodeforcesStats, getLeetCodeStats } from '../services/platformApi';
+import { getCodeforcesStats, getLeetCodeStats, getRecommendations } from '../services/platformApi';
 import ActivityGraph from '../components/ActivityGraph';
 import AiCoach from '../components/AiCoach';
-
+import ProblemList from '../components/ProblemList';
 
 // --- Mock Data ---
 const MOCK_STATS = [
     { platform: 'CodeChef', rating: 1600, label: '3 Star', icon: Hash, color: 'text-orange-500' },
-];
-
-const MOCK_RECOMMENDATIONS = [
-    { id: 1, title: 'Longest Palindromic Substring', difficulty: 'Medium', tag: 'DP', time: '15 min' },
-    { id: 2, title: 'Alien Dictionary', difficulty: 'Hard', tag: 'Graph', time: '45 min' },
-    { id: 3, title: 'K-th Smallest Element in BST', difficulty: 'Medium', tag: 'Trees', time: '20 min' },
-    { id: 4, title: 'Median of Two Sorted Arrays', difficulty: 'Hard', tag: 'Binary Search', time: '60 min' },
 ];
 
 const MOCK_SKILLS = [
@@ -63,6 +56,7 @@ const Heatmap = () => {
 const Dashboard = () => {
     const [cfData, setCfData] = useState(null);
     const [lcData, setLcData] = useState(null);
+    const [recommendations, setRecommendations] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [history, setHistory] = useState([]);
@@ -109,14 +103,38 @@ const Dashboard = () => {
 
         try {
             // Run all fetches in parallel
-            const [cfRes, lcRes] = await Promise.allSettled([
+            const promises = [
                 cfHandle ? getCodeforcesStats(cfHandle) : Promise.resolve(null),
                 lcHandle ? getLeetCodeStats(lcHandle) : Promise.resolve(null),
                 fetchHistory() // Add history to the promise chain
-            ]);
+            ];
+
+            // Add recommendations fetch if CF handle exists
+            if (cfHandle) {
+                promises.push(getRecommendations(cfHandle).catch(err => {
+                    console.error("Rec Error:", err);
+                    return { recommendations: [] };
+                }));
+            }
+
+            const results = await Promise.allSettled(promises);
+
+            // Handle Stats Results
+            const cfRes = results[0];
+            const lcRes = results[1];
+            // History is handled inside fetchHistory, but we awaited it here
+
+            // Handle Recommendations Result (index 3 if it exists)
+            const recRes = results.length > 3 ? results[3] : null;
 
             if (cfRes.status === 'fulfilled') setCfData(cfRes.value);
             if (lcRes.status === 'fulfilled') setLcData(lcRes.value);
+
+            if (recRes && recRes.status === 'fulfilled' && recRes.value) {
+                setRecommendations(recRes.value.recommendations || []);
+            } else {
+                setRecommendations([]);
+            }
 
         } catch (error) {
             console.log("failed to load data", error);
@@ -260,40 +278,7 @@ const Dashboard = () => {
 
                     {/* Recommendations (Left - 2 Cols) */}
                     <div className="lg:col-span-2 space-y-6">
-                        <div className="flex justify-between items-center">
-                            <h3 className="text-lg font-bold text-white">AI Recommended Problems</h3>
-                            <button className="text-[#4ecdc4] text-sm hover:underline">View All</button>
-                        </div>
-
-                        <div className="space-y-4">
-                            {MOCK_RECOMMENDATIONS.map((prob) => (
-                                <div
-                                    key={prob.id}
-                                    className={`group flex items-center justify-between p-4 rounded-xl border border-gray-800 bg-[#111f22] hover:bg-[#16292d] hover:border-[#4ecdc4]/30 transition-all duration-300`}
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${prob.difficulty === 'Easy' ? 'bg-green-500/10 text-green-400' :
-                                            prob.difficulty === 'Medium' ? 'bg-yellow-500/10 text-yellow-400' :
-                                                'bg-red-500/10 text-red-400'
-                                            }`}>
-                                            <Code size={20} />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-medium text-gray-200 group-hover:text-[#4ecdc4] transition-colors">{prob.title}</h4>
-                                            <div className="flex gap-3 mt-1 text-xs text-gray-500">
-                                                <span className={`px-1.5 py-0.5 rounded ${prob.difficulty === 'Medium' ? 'bg-yellow-500/10 text-yellow-500' : 'bg-red-500/10 text-red-500'
-                                                    }`}>{prob.difficulty}</span>
-                                                <span className="flex items-center gap-1"><Hash size={12} /> {prob.tag}</span>
-                                                <span className="flex items-center gap-1"><Activity size={12} /> ~{prob.time}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button className="text-gray-400 hover:text-white hover:bg-white/5 border border-gray-700 group-hover:bg-[#4ecdc4] group-hover:text-black group-hover:border-transparent px-4 py-2 rounded-lg font-medium transition-all duration-200">
-                                        Solve
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
+                        <ProblemList problems={recommendations} />
                     </div>
 
                     {/* Weak Areas / Skills (Right - 1 Col) */}
@@ -338,8 +323,8 @@ const Dashboard = () => {
                             </div>
                         </div>
                     </div>
-
                 </div>
+
             </main>
 
             {/* Floating AI Coach - Placed outside the main grid flow */}

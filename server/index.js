@@ -2,6 +2,7 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const mongoose = require("mongoose");
+const limiter = require("./middleware/rateLimiter");
 
 // dotenv config to use environment variables
 require("dotenv").config();
@@ -18,6 +19,9 @@ app.use(
     origin: "http://localhost:5173",
   })
 );
+
+//rate limiter
+app.use(limiter);
 
 // parse json body
 app.use(express.json());

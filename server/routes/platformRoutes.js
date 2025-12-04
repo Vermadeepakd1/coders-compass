@@ -1,6 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const fetchCFStatus = require("../services/codeforceService");
+const {
+  fetchCFStatus,
+  getRecommendations,
+} = require("../services/codeforceService");
 const fetchLeetCodeStats = require("../services/leetcodeService");
 const protect = require("../middleware/authMiddleware");
 const DailyStat = require("../models/DailyStat");
@@ -107,6 +110,20 @@ router.get("/history", protect, async (req, res) => {
   } catch (error) {
     console.error("Error fetching history:", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+// GET /api/platforms/codeforces/recommend/:handle
+router.get("/codeforces/recommend/:handle", async (req, res) => {
+  try {
+    const { handle } = req.params;
+    const rec = await getRecommendations(handle);
+    return res.status(200).json({ recommendations: rec });
+  } catch (error) {
+    console.error("Error getting recommendations:", error.message);
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 });
 

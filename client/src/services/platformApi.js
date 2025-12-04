@@ -30,3 +30,22 @@ export const getLeetCodeStats = async (handle) => {
   );
   return response.data;
 };
+
+//get cf recommendations
+export const getRecommendations = async (handle) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axios.get(
+      `${base_url}/api/platforms/codeforces/recommend/${handle}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching recommendations:", error);
+    return [];
+  }
+};
