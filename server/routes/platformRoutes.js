@@ -4,7 +4,10 @@ const {
   fetchCFStatus,
   getRecommendations,
 } = require("../services/codeforceService");
-const fetchLeetCodeStats = require("../services/leetcodeService");
+const {
+  fetchLeetCodeStats,
+  fetchLeetCodeFilter,
+} = require("../services/leetcodeService");
 const protect = require("../middleware/authMiddleware");
 const DailyStat = require("../models/DailyStat");
 
@@ -14,6 +17,24 @@ const getTodayDate = () => {
   today.setHours(0, 0, 0, 0);
   return today;
 };
+
+// GET /api/platforms/codeforces/recommend/:handle
+// ⚠️ IMPORTANT: This MUST be before /codeforces/:handle to avoid route conflicts
+router.get("/codeforces/recommend/:handle", protect, async (req, res) => {
+  try {
+    const { handle } = req.params;
+    if (!handle || handle.trim() === "") {
+      return res.status(400).json({ message: "Handle is required" });
+    }
+    const rec = await getRecommendations(handle);
+    return res.status(200).json({ recommendations: rec });
+  } catch (error) {
+    console.error("Error getting recommendations:", error.message);
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
+  }
+});
 
 // Get /api/platforms/codeforces/:handle
 router.get("/codeforces/:handle", protect, async (req, res) => {
@@ -57,6 +78,18 @@ router.get("/codeforces/:handle", protect, async (req, res) => {
     res
       .status(500)
       .json({ message: "Internal Server Error", error: error.message });
+  }
+});
+
+// GET /api/platforms/leetcode/explore?tag=dp&difficulty=medium
+router.get("/leetcode/explore", protect, async (req, res) => {
+  try {
+    const { tag, difficulty } = req.query;
+    const problems = await fetchLeetCodeFilter(tag, difficulty);
+    res.json(problems);
+  } catch (error) {
+    console.error("Error fetching LC explore:", error.message);
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 });
 
@@ -110,20 +143,6 @@ router.get("/history", protect, async (req, res) => {
   } catch (error) {
     console.error("Error fetching history:", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
-  }
-});
-
-// GET /api/platforms/codeforces/recommend/:handle
-router.get("/codeforces/recommend/:handle", async (req, res) => {
-  try {
-    const { handle } = req.params;
-    const rec = await getRecommendations(handle);
-    return res.status(200).json({ recommendations: rec });
-  } catch (error) {
-    console.error("Error getting recommendations:", error.message);
-    return res
-      .status(500)
-      .json({ message: "Server error", error: error.message });
   }
 });
 

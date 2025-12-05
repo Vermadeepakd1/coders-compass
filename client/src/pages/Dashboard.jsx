@@ -5,17 +5,11 @@ import { getCodeforcesStats, getLeetCodeStats, getRecommendations } from '../ser
 import ActivityGraph from '../components/ActivityGraph';
 import AiCoach from '../components/AiCoach';
 import ProblemList from '../components/ProblemList';
+import LeetCodeExplorer from '../components/LeetCodeExplorer';
 
 // --- Mock Data ---
 const MOCK_STATS = [
     { platform: 'CodeChef', rating: 1600, label: '3 Star', icon: Hash, color: 'text-orange-500' },
-];
-
-const MOCK_SKILLS = [
-    { name: 'Dynamic Programming', score: 45, status: 'Weak' },
-    { name: 'Graph Theory', score: 85, status: 'Strong' },
-    { name: 'Greedy Algorithms', score: 60, status: 'Average' },
-    { name: 'Bit Manipulation', score: 30, status: 'Critical' },
 ];
 
 const Heatmap = () => {
@@ -281,47 +275,9 @@ const Dashboard = () => {
                         <ProblemList problems={recommendations} />
                     </div>
 
-                    {/* Weak Areas / Skills (Right - 1 Col) */}
-                    <div className="space-y-6">
-                        <h3 className="text-lg font-bold text-white">Skill Analysis</h3>
-                        <div className="bg-[#111f22] border border-gray-800/50 rounded-xl p-6 shadow-xl backdrop-blur-sm h-full">
-                            <div className="space-y-6">
-                                {MOCK_SKILLS.map((skill) => (
-                                    <div key={skill.name}>
-                                        <div className="flex justify-between items-end mb-2">
-                                            <span className="text-sm font-medium text-gray-300">{skill.name}</span>
-                                            <span className={`text-xs font-bold ${skill.status === 'Strong' ? 'text-green-400' :
-                                                skill.status === 'Weak' ? 'text-yellow-400' :
-                                                    skill.status === 'Critical' ? 'text-red-400' : 'text-blue-400'
-                                                }`}>{skill.status}</span>
-                                        </div>
-                                        <div className="h-2 w-full bg-gray-800 rounded-full overflow-hidden">
-                                            <div
-                                                className={`h-full rounded-full transition-all duration-1000 ease-out ${skill.status === 'Strong' ? 'bg-green-500' :
-                                                    skill.status === 'Weak' ? 'bg-yellow-500' :
-                                                        skill.status === 'Critical' ? 'bg-red-500' : 'bg-blue-500'
-                                                    }`}
-                                                style={{ width: `${skill.score}%` }}
-                                            ></div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="mt-8 pt-6 border-t border-gray-800">
-                                <div className="bg-[#4ecdc4]/10 rounded-lg p-4 border border-[#4ecdc4]/20">
-                                    <div className="flex items-start gap-3">
-                                        <Zap className="text-[#4ecdc4] shrink-0 mt-1" size={18} />
-                                        <div>
-                                            <h5 className="text-sm font-bold text-[#4ecdc4] mb-1">Focus Area</h5>
-                                            <p className="text-xs text-gray-400 leading-relaxed">
-                                                Your Graph Theory solves have dropped this week. Try solving 2 Graph Hard problems to maintain your streak.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    {/* Right Column - LeetCode Explorer */}
+                    <div className="space-y-6 h-[600px]">
+                        <LeetCodeExplorer />
                     </div>
                 </div>
 

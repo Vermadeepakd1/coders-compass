@@ -49,3 +49,22 @@ export const getRecommendations = async (handle) => {
     return [];
   }
 };
+
+//get lc recommendations
+export const getLeetCodeSuggestions = async (tag, difficulty) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axios.get(
+      `${base_url}/api/platforms/leetcode/explore`,
+      {
+        params: { tag, difficulty },
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching LC Suggestions:", error);
+    return [];
+  }
+};
