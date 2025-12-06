@@ -29,8 +29,14 @@ app.use(express.json());
 // database connection
 mongoose
   .connect(process.env.MONGODB_URI)
-  .then(console.log("MongoDB connected"))
-  .catch((e) => console.log(e.message));
+  .then(() => {
+    console.log("MongoDB connected");
+    // to start listening at port
+    app.listen(port, () => {
+      console.log(`app listening on port ${port}`);
+    });
+  })
+  .catch((e) => console.log("MongoDB Connection Error:", e.message));
 
 // test api
 app.get("/api/test", (req, res) => {
@@ -40,8 +46,3 @@ app.get("/api/test", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/platforms", platformRoutes);
 app.use("/api/ai", aiRoutes);
-
-// to start listening at port
-app.listen(port, () => {
-  console.log(`app listening on port ${port}`);
-});

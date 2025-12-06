@@ -5,6 +5,10 @@ const base_url = import.meta.env.VITE_API_URL;
 // Helper function to get auth headers
 const getAuthHeaders = () => {
   const token = localStorage.getItem("token");
+  if (!token) {
+    console.warn("No token found in localStorage");
+    return { headers: {} };
+  }
   console.log("Token being sent:", token);
   return {
     headers: {
@@ -26,6 +30,15 @@ export const getCodeforcesStats = async (handle) => {
 export const getLeetCodeStats = async (handle) => {
   const response = await axios.get(
     `${base_url}/api/platforms/leetcode/${handle}`,
+    getAuthHeaders()
+  );
+  return response.data;
+};
+
+// Get Rating History
+export const getRatingHistory = async (cfHandle, lcHandle) => {
+  const response = await axios.get(
+    `${base_url}/api/platforms/rating-history/${cfHandle}/${lcHandle}`,
     getAuthHeaders()
   );
   return response.data;
@@ -66,5 +79,24 @@ export const getLeetCodeSuggestions = async (tag, difficulty) => {
   } catch (error) {
     console.error("Error fetching LC Suggestions:", error);
     return [];
+  }
+};
+
+// get combined stats
+export const getCombinedStats = async (cfHandle, lcHandle) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axios.get(
+      `${base_url}/api/platforms/combined/${cfHandle}/${lcHandle}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching combined stats:", error);
+    return null;
   }
 };

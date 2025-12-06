@@ -3,10 +3,15 @@ const router = express.Router();
 const {
   fetchCFStatus,
   getRecommendations,
+  calculateCFStats,
+  fetchCFHistory,
 } = require("../services/codeforceService");
 const {
+  fetchLeetCodeCalendar,
   fetchLeetCodeStats,
   fetchLeetCodeFilter,
+  fetchLeetCodeRating,
+  fetchLeetCodeHistory,
 } = require("../services/leetcodeService");
 const protect = require("../middleware/authMiddleware");
 const DailyStat = require("../models/DailyStat");
@@ -102,7 +107,10 @@ router.get("/leetcode/:handle", protect, async (req, res) => {
     }
 
     //fetch data
-    const lcData = await fetchLeetCodeStats(handle);
+    const [lcData, lcRating] = await Promise.all([
+      fetchLeetCodeStats(handle),
+      fetchLeetCodeRating(handle),
+    ]);
 
     if (!lcData) {
       return res.status(404).json({ message: "Leetcode user not found" });
@@ -117,6 +125,7 @@ router.get("/leetcode/:handle", protect, async (req, res) => {
       {
         $set: {
           leetcode: {
+            rating: lcRating?.rating || null,
             totalSolved: lcData.totalSolved,
             easy: lcData.easy,
             medium: lcData.medium,
@@ -126,7 +135,10 @@ router.get("/leetcode/:handle", protect, async (req, res) => {
       },
       { upsert: true, new: true }
     );
-    res.json(lcData);
+    res.json({
+      ...lcData,
+      rating: lcRating?.rating ? Math.round(lcRating.rating) : null,
+    });
   } catch (error) {
     console.error("Error LC routes:", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
@@ -136,12 +148,123 @@ router.get("/leetcode/:handle", protect, async (req, res) => {
 // GET /api/platforms/history
 router.get("/history", protect, async (req, res) => {
   try {
+    // Get the latest 30 entries
     const data = await DailyStat.find({ user: req.user._id })
-      .sort({ date: 1 })
+      .sort({ date: -1 }) // Newest first
       .limit(30);
-    res.status(200).json({ data: data });
+
+    // Sort them back to chronological order for the graph
+    const sortedData = data.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    res.status(200).json({ data: sortedData });
   } catch (error) {
     console.error("Error fetching history:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+// GET /api/platforms/combined/:cfHandle/:lcHandle
+router.get("/combined/:cfHandle/:lcHandle", protect, async (req, res) => {
+  try {
+    const { cfHandle, lcHandle } = req.params;
+
+    // Parallel Fetching
+    const [cfStats, cfStatus, lcRating, lcCalendar, lcSolves] =
+      await Promise.all([
+        calculateCFStats(cfHandle),
+        fetchCFStatus(cfHandle),
+        fetchLeetCodeRating(lcHandle),
+        fetchLeetCodeCalendar(lcHandle),
+        fetchLeetCodeStats(lcHandle),
+      ]);
+
+    // --- MERGE LOGIC ---
+    const mergedHeatmap = {};
+
+    // Add CF Data
+    Object.entries(cfStats.heatmap).forEach(([date, count]) => {
+      mergedHeatmap[date] = count;
+    });
+
+    // Add LC Data (Convert timestamp to Date string first)
+    Object.entries(lcCalendar).forEach(([ts, count]) => {
+      const date = new Date(parseInt(ts) * 1000).toISOString().split("T")[0];
+      mergedHeatmap[date] = (mergedHeatmap[date] || 0) + count;
+    });
+
+    // Format for Frontend
+    const heatmapArray = Object.keys(mergedHeatmap).map((date) => ({
+      date,
+      count: mergedHeatmap[date],
+    }));
+
+    // Save to DailyStat
+    await DailyStat.findOneAndUpdate(
+      {
+        user: req.user._id,
+        date: getTodayDate(),
+      },
+      {
+        $set: {
+          codeforces: {
+            rating: cfStatus ? cfStatus.rating : null,
+            rank: cfStatus ? cfStatus.rank : null,
+          },
+          leetcode: {
+            rating: lcRating?.rating || null,
+            totalSolved: lcSolves.totalSolved,
+            easy: lcSolves.easy,
+            medium: lcSolves.medium,
+            hard: lcSolves.hard,
+          },
+        },
+      },
+      { upsert: true, new: true }
+    );
+
+    res.json({
+      totalSolved: cfStats.totalSolved + lcSolves.totalSolved,
+      codeforces: {
+        solved: cfStats.totalSolved,
+        rating: cfStatus ? cfStatus.rating : "N/A",
+        rank: cfStatus ? cfStatus.rank : "N/A",
+        titlePhoto: cfStatus ? cfStatus.titlePhoto : "",
+      },
+      leetcode: {
+        solved: lcSolves.totalSolved,
+        rating: lcRating.rating ? Math.round(lcRating.rating) : "N/A",
+        easy: lcSolves.easy,
+        medium: lcSolves.medium,
+        hard: lcSolves.hard,
+      },
+      heatmap: heatmapArray,
+    });
+  } catch (err) {
+    console.error("Error in combined route:", err.message);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+// GET /api/platforms/rating-history/:cfHandle/:lcHandle
+router.get("/rating-history/:cfHandle/:lcHandle", protect, async (req, res) => {
+  try {
+    const { cfHandle, lcHandle } = req.params;
+
+    const [cfHistory, lcHistory] = await Promise.all([
+      cfHandle !== "null" && cfHandle !== "undefined"
+        ? fetchCFHistory(cfHandle)
+        : Promise.resolve([]),
+      lcHandle !== "null" && lcHandle !== "undefined"
+        ? fetchLeetCodeHistory(lcHandle)
+        : Promise.resolve([]),
+    ]);
+
+    res.json({
+      codeforces: cfHistory,
+      leetcode: lcHistory,
+    });
+  } catch (error) {
+    console.error("Error fetching rating history:", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });

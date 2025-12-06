@@ -50,6 +50,12 @@ const fetchLeetCodeStats = async (handle) => {
 
     //extract the data
     const data = response.data.data;
+    const matchedUser = data?.matchedUser;
+
+    if (!matchedUser) {
+      console.error("fetchLeetCodeStats: User not found");
+      return null;
+    }
     return {
       totalSolved: data.matchedUser.submitStats.acSubmissionNum[0].count,
       easy: data.matchedUser.submitStats.acSubmissionNum[1].count,
@@ -63,6 +69,7 @@ const fetchLeetCodeStats = async (handle) => {
   }
 };
 
+// to get leetcode questions of specific topic
 const fetchLeetCodeFilter = async (tag, difficulty) => {
   const url = "https://leetcode.com/graphql";
 
@@ -121,7 +128,12 @@ const fetchLeetCodeFilter = async (tag, difficulty) => {
     );
 
     // 3. Extract and Shuffle
-    const questions = response.data.data.problemsetQuestionList.questions;
+    const questions = response.data.data?.problemsetQuestionList?.questions;
+
+    if (!questions || questions.length === 0) {
+      console.log("fetchLeetCodeFilter: No questions found");
+      return [];
+    }
 
     // Helper to shuffle array (Fisher-Yates)
     for (let i = questions.length - 1; i > 0; i--) {
@@ -137,4 +149,119 @@ const fetchLeetCodeFilter = async (tag, difficulty) => {
   }
 };
 
-module.exports = { fetchLeetCodeStats, fetchLeetCodeFilter };
+//to get leetcode contest rating
+const fetchLeetCodeRating = async (handle) => {
+  const query = `
+      query userContestRankingInfo($username: String!) {
+        userContestRanking(username: $username) {
+          rating
+        }
+      }
+    `;
+  try {
+    const response = await axios.post(
+      "https://leetcode.com/graphql",
+      { query, variables: { username: handle } },
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return response.data.data.userContestRanking || { rating: 0 };
+  } catch (error) {
+    console.error("fetchLeetCodeRating Error:", error.message);
+    return { rating: 0 };
+  }
+};
+
+// Get Submission Calendar (Returns {"1701234": 5, ...})
+const fetchLeetCodeCalendar = async (handle) => {
+  const query = `
+      query userProfileCalendar($username: String!) {
+        matchedUser(username: $username) {
+          userCalendar {
+            submissionCalendar
+          }
+        }
+      }
+    `;
+  try {
+    const response = await axios.post(
+      "https://leetcode.com/graphql",
+      { query, variables: { username: handle } },
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    const calendarData =
+      response.data.data?.matchedUser?.userCalendar?.submissionCalendar;
+
+    if (!calendarData) {
+      console.log("fetchLeetCodeCalendar: No calendar data found");
+      return {};
+    }
+
+    return JSON.parse(calendarData);
+  } catch (error) {
+    console.error("fetchLeetCodeCalendar Error:", error.message);
+    return {};
+  }
+};
+
+// Get Contest History
+const fetchLeetCodeHistory = async (handle) => {
+  const query = `
+      query userContestRankingInfo($username: String!) {
+        userContestRankingHistory(username: $username) {
+          attended
+          rating
+          contest {
+            startTime
+            title
+          }
+        }
+      }
+    `;
+  try {
+    const response = await axios.post(
+      "https://leetcode.com/graphql",
+      { query, variables: { username: handle } },
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const history = response.data.data?.userContestRankingHistory;
+    if (!history) return [];
+
+    return history
+      .filter((h) => h.attended)
+      .map((h) => ({
+        date: new Date(h.contest.startTime * 1000).toISOString(),
+        rating: h.rating,
+        contestName: h.contest.title,
+      }));
+  } catch (error) {
+    console.error("fetchLeetCodeHistory Error:", error.message);
+    return [];
+  }
+};
+
+module.exports = {
+  fetchLeetCodeStats,
+  fetchLeetCodeFilter,
+  fetchLeetCodeRating,
+  fetchLeetCodeCalendar,
+  fetchLeetCodeHistory,
+};

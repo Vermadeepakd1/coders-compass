@@ -22,6 +22,10 @@ const dailyStatSchema = new mongoose.Schema(
       },
     },
     leetcode: {
+      rating: {
+        type: Number,
+        default: null,
+      },
       totalSolved: {
         type: Number,
         default: null,
