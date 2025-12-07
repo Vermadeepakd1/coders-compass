@@ -50,10 +50,15 @@ const HeroPage = () => {
                 {/* Platform Integration Banner */}
                 <div className="py-10 border-y border-gray-800/50 bg-[#111f22]/30 backdrop-blur-sm mb-20">
                     <p className="text-center text-gray-500 text-sm font-medium uppercase tracking-wider mb-6">Seamlessly Integrates With</p>
-                    <div className="flex justify-center items-center gap-8 md:gap-16 flex-wrap opacity-70 grayscale hover:grayscale-0 transition-all duration-500">
-                        <div className="flex items-center gap-2 text-xl font-bold text-white"><Terminal className="text-yellow-500" /> LeetCode</div>
-                        <div className="flex items-center gap-2 text-xl font-bold text-white"><Code className="text-blue-500" /> Codeforces</div>
-                        <div className="flex items-center gap-2 text-xl font-bold text-white"><Globe className="text-orange-500" /> CodeChef</div>
+                    <div className="flex justify-center items-center gap-8 md:gap-16 flex-wrap">
+                        <div className="flex items-center gap-2 text-xl font-bold text-white hover:scale-105 transition-transform"><Terminal className="text-yellow-500" /> LeetCode</div>
+                        <div className="flex items-center gap-2 text-xl font-bold text-white hover:scale-105 transition-transform"><Code className="text-blue-500" /> Codeforces</div>
+                        <div className="flex items-center gap-2 text-xl font-bold text-gray-600 relative group cursor-help">
+                            <Globe className="text-gray-600" /> CodeChef
+                            <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-800 text-xs text-[#4ecdc4] px-3 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-[#4ecdc4]/30 shadow-lg">
+                                Coming Soon
+                            </span>
+                        </div>
                     </div>
                 </div>
 
@@ -87,6 +92,31 @@ const HeroPage = () => {
                         <p className="text-gray-400 leading-relaxed">
                             Visualize your progress with detailed heatmaps and skill graphs. Identify if you're weak in DP or Graphs and track your improvement over time.
                         </p>
+                    </div>
+                </div>
+
+                {/* Coming Soon Section */}
+                <div className="mb-24">
+                    <div className="text-center mb-12">
+                        <h2 className="text-3xl font-bold text-white mb-4">Roadmap & Future Features</h2>
+                        <p className="text-gray-400">We are constantly working to make Coder's Compass better.</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {[
+                            { icon: Globe, title: "CodeChef Support", desc: "Track ratings & stars" },
+                            { icon: Shield, title: "Contest Reminders", desc: "Never miss a round" },
+                            { icon: Target, title: "Friend Leaderboards", desc: "Compete with peers" },
+                            { icon: Zap, title: "Mobile App", desc: "Code on the go" }
+                        ].map((item, idx) => (
+                            <div key={idx} className="p-6 rounded-xl bg-[#111f22]/50 border border-gray-800/50 flex flex-col items-center text-center hover:bg-[#111f22] transition-colors">
+                                <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center mb-4 text-gray-400">
+                                    <item.icon size={20} />
+                                </div>
+                                <h3 className="font-semibold text-white mb-1">{item.title}</h3>
+                                <p className="text-sm text-gray-500">{item.desc}</p>
+                                <span className="mt-3 text-[10px] uppercase tracking-wider font-bold text-[#4ecdc4] bg-[#4ecdc4]/10 px-2 py-1 rounded-full">Coming Soon</span>
+                            </div>
+                        ))}
                     </div>
                 </div>
 
