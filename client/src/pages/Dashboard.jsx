@@ -35,7 +35,11 @@ const Dashboard = () => {
         try {
             // 1. Fetch Combined Stats
             const stats = await getCombinedStats(cfHandle, lcHandle);
-            setCombinedData(stats);
+            if (stats) {
+                setCombinedData(stats);
+            } else {
+                setError("Failed to load combined stats");
+            }
 
             // 2. Fetch Recommendations (if CF handle exists)
             if (cfHandle) {
@@ -49,14 +53,11 @@ const Dashboard = () => {
 
         } catch (error) {
             console.log("failed to load data", error);
-            // Only set error if we don't have any data yet
-            if (!combinedData) {
-                setError("Failed to load some data");
-            }
+            setError("Failed to load some data");
         } finally {
             setIsLoading(false);
         }
-    }, [user]);
+    }, [user?.handles?.codeforces, user?.handles?.leetcode]);
 
     // Initial load
     useEffect(() => {
