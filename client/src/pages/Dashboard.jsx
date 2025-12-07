@@ -56,7 +56,7 @@ const Dashboard = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [user, combinedData]);
+    }, [user]);
 
     // Initial load
     useEffect(() => {
