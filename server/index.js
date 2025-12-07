@@ -16,7 +16,7 @@ const port = process.env.PORT || 5000;
 // cors setup to allow our frontend
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173", "https://coders-compass.vercel.app"],
   })
 );
 
