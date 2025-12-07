@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Ensure this matches your actual backend URL (or use import.meta.env.VITE_API_URL if you set that up)
-const BASE_URL = "http://localhost:5000/api";
+const BASE_URL = `${import.meta.env.VITE_API_URL}/api`;
 
 export const askAiHint = async (problemLink, history) => {
   try {
