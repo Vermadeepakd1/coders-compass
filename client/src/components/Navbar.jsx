@@ -20,7 +20,7 @@ const Navbar = () => {
                 <div className="flex justify-between items-center h-16">
                     {/* Logo */}
                     <Link to="/" className="flex items-center gap-3 group">
-                        <div className="p-1.5 rounded bg-gradient-to-br from-[#4ecdc4] to-[#0075a2] group-hover:opacity-90 transition-opacity">
+                        <div className="p-1.5 rounded bg-linear-to-br from-[#4ecdc4] to-[#0075a2] group-hover:opacity-90 transition-opacity">
                             <Cpu size={20} className="text-white" />
                         </div>
                         <span className="text-xl font-bold text-white tracking-tight">Coder's Compass</span>
@@ -47,7 +47,7 @@ const Navbar = () => {
                                         <p className="text-sm font-medium text-white">{user.username || 'User'}</p>
                                         <p className="text-xs text-gray-500">Member</p>
                                     </div>
-                                    <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 border border-gray-500 flex items-center justify-center">
+                                    <div className="w-9 h-9 rounded-full bg-linear-to-tr from-gray-700 to-gray-600 border border-gray-500 flex items-center justify-center">
                                         <User size={18} className="text-gray-300" />
                                     </div>
                                     <button
