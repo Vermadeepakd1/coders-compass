@@ -19,10 +19,7 @@ const Dashboard = () => {
     const [ratingHistory, setRatingHistory] = useState({ codeforces: [], leetcode: [] });
 
     // Main refresh function
-    const refreshData = useCallback(async () => {
-        const cfHandle = user?.handles?.codeforces;
-        const lcHandle = user?.handles?.leetcode;
-
+    const refreshData = useCallback(async (cfHandle, lcHandle) => {
         if (!cfHandle && !lcHandle) {
             setIsLoading(false);
             setError("Link your account");
@@ -57,14 +54,17 @@ const Dashboard = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [user?.handles?.codeforces, user?.handles?.leetcode]);
+    }, []);
+
+    const cfHandle = user?.handles?.codeforces;
+    const lcHandle = user?.handles?.leetcode;
 
     // Initial load
     useEffect(() => {
-        if (user) {
-            refreshData();
+        if (cfHandle || lcHandle) {
+            refreshData(cfHandle, lcHandle);
         }
-    }, [user, refreshData]);
+    }, [cfHandle, lcHandle, refreshData]);
 
     return (
         <div className="min-h-screen bg-[#0c1618] pb-12 relative">
@@ -74,7 +74,7 @@ const Dashboard = () => {
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-2xl font-bold text-white">Welcome, {user?.username || 'Developer'}</h1>
                     <button
-                        onClick={refreshData}
+                        onClick={() => refreshData(cfHandle, lcHandle)}
                         disabled={isLoading}
                         className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 border border-[#4ecdc4] text-[#4ecdc4] hover:bg-[#4ecdc4]/10 text-sm h-9 ${isLoading ? 'opacity-70 cursor-wait' : ''}`}
                     >
