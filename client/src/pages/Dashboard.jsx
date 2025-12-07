@@ -49,7 +49,10 @@ const Dashboard = () => {
 
         } catch (error) {
             console.log("failed to load data", error);
-            setError("Failed to load some data");
+            // Only set error if we don't have any data yet
+            if (!combinedData) {
+                setError("Failed to load some data");
+            }
         } finally {
             setIsLoading(false);
         }
