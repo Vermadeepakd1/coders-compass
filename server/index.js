@@ -20,6 +20,10 @@ app.use(
   })
 );
 
+// Trust proxy is required when behind a load balancer (e.g. Vercel, Render, Heroku)
+// so that req.ip is the user's IP, not the proxy's IP.
+app.set("trust proxy", 1);
+
 //rate limiter
 app.use(limiter);
 
