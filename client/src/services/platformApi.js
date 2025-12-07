@@ -37,8 +37,10 @@ export const getLeetCodeStats = async (handle) => {
 
 // Get Rating History
 export const getRatingHistory = async (cfHandle, lcHandle) => {
+  const cf = cfHandle || "null";
+  const lc = lcHandle || "null";
   const response = await axios.get(
-    `${base_url}/api/platforms/rating-history/${cfHandle}/${lcHandle}`,
+    `${base_url}/api/platforms/rating-history/${cf}/${lc}`,
     getAuthHeaders()
   );
   return response.data;
@@ -85,9 +87,11 @@ export const getLeetCodeSuggestions = async (tag, difficulty) => {
 // get combined stats
 export const getCombinedStats = async (cfHandle, lcHandle) => {
   try {
+    const cf = cfHandle || "null";
+    const lc = lcHandle || "null";
     const token = localStorage.getItem("token");
     const response = await axios.get(
-      `${base_url}/api/platforms/combined/${cfHandle}/${lcHandle}`,
+      `${base_url}/api/platforms/combined/${cf}/${lc}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,

@@ -168,14 +168,30 @@ router.get("/combined/:cfHandle/:lcHandle", protect, async (req, res) => {
   try {
     const { cfHandle, lcHandle } = req.params;
 
+    const isCfValid =
+      cfHandle && cfHandle !== "null" && cfHandle !== "undefined";
+    const isLcValid =
+      lcHandle && lcHandle !== "null" && lcHandle !== "undefined";
+
     // Parallel Fetching
     const [cfStats, cfStatus, lcRating, lcCalendar, lcSolves] =
       await Promise.all([
-        calculateCFStats(cfHandle),
-        fetchCFStatus(cfHandle),
-        fetchLeetCodeRating(lcHandle),
-        fetchLeetCodeCalendar(lcHandle),
-        fetchLeetCodeStats(lcHandle),
+        isCfValid
+          ? calculateCFStats(cfHandle)
+          : Promise.resolve({ totalSolved: 0, heatmap: {} }),
+        isCfValid ? fetchCFStatus(cfHandle) : Promise.resolve(null),
+        isLcValid
+          ? fetchLeetCodeRating(lcHandle)
+          : Promise.resolve({ rating: 0 }),
+        isLcValid ? fetchLeetCodeCalendar(lcHandle) : Promise.resolve({}),
+        isLcValid
+          ? fetchLeetCodeStats(lcHandle)
+          : Promise.resolve({
+              totalSolved: 0,
+              easy: 0,
+              medium: 0,
+              hard: 0,
+            }),
       ]);
 
     // --- MERGE LOGIC ---
