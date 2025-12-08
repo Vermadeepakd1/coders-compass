@@ -67,3 +67,21 @@ body {
   stroke: #f7f9f9;
   stroke-width: 1px;
 }
+
+/* Heatmap Labels */
+.react-calendar-heatmap text {
+  font-size: 10px !important;
+  fill: #9ca3af !important; /* Gray-400 */
+}
+
+.react-calendar-heatmap {
+  overflow: visible !important; /* Prevent clipping of labels */
+}
+
+.react-calendar-heatmap .react-calendar-heatmap-weekday-labels {
+  transform: translate(4px, 12px); /* Adjust day labels position */
+}
+
+.react-calendar-heatmap .react-calendar-heatmap-month-labels {
+  transform: translate(0, -4px); /* Lift months up slightly */
+}
