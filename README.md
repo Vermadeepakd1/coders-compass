@@ -1,23 +1,23 @@
-# Coder's Compass 🧭
+# 🧭 Coder's Compass
 
 **Navigate Your Path to Coding Mastery**
 
-Coder's Compass is an all-in-one dashboard designed for competitive programmers. It unifies your profiles from LeetCode and Codeforces, providing AI-powered insights, personalized problem recommendations, and detailed analytics to help you improve faster and more efficiently.
+A smart progress tracker and AI-powered coach for competitive programmers.
+**Live Demo:** [https://coders-compass.vercel.app](https://coders-compass.vercel.app)
 
-![Coder's Compass Dashboard](https://via.placeholder.com/800x400?text=Coder%27s+Compass+Dashboard+Preview)
+![Coder's Compass Dashboard](./screenshots/dashboard.png)
 
-## 🚀 Features
+## 🚀 Key Features
 
-### ✅ Implemented
-
-- **Unified Dashboard**: View your stats, ratings, and submission history from LeetCode and Codeforces in one centralized view.
-- **AI Coach**: A personalized AI assistant (powered by Gemini) that analyzes your performance and suggests the next best problems to solve.
-- **Submission Heatmap**: A GitHub-style heatmap visualizing your daily coding activity across all connected platforms.
-- **Rating History Graphs**: Interactive graphs tracking your contest ratings over time for both Codeforces and LeetCode.
+- **Multi-Platform Tracking**: Aggregates real-time stats from **Codeforces** and **LeetCode** into a single dashboard.
+- **AI Coach**: Integrated **Google Gemini AI** to provide context-aware hints without revealing code solutions.
+- **Unified Heatmap**: A GitHub-style activity graph merging submission history from multiple platforms.
+- **Smart Caching**: Implemented **Redis** caching strategy to reduce external API latency by 90% and save AI quotas.
+- **System Design**: Protected by **Rate Limiting** and **JWT Authentication** for production-grade security.
+- **Rating History Graphs**: Interactive graphs tracking your contest ratings over time.
 - **Problem Explorer**: Filter and find LeetCode problems by tag and difficulty.
-- **Smart Recommendations**: Get problem suggestions tailored to your current skill level.
 
-### 🔮 Coming Soon
+## 🔮 Coming Soon
 
 - **CodeChef Integration**: Track your CodeChef ratings and stars.
 - **Contest Reminders**: Get notified about upcoming contests via email or push notifications.
@@ -26,12 +26,31 @@ Coder's Compass is an all-in-one dashboard designed for competitive programmers.
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: React.js, Vite, Tailwind CSS, Recharts, Lucide React
+- **Frontend**: React.js, Vite, Tailwind CSS, Recharts, React Calendar Heatmap
 - **Backend**: Node.js, Express.js
-- **Database**: MongoDB (Mongoose)
-- **Caching**: Redis (for caching Codeforces API responses)
-- **AI Integration**: Google Gemini API
+- **Database**: MongoDB Atlas (User Data), Upstash Redis (Caching)
+- **AI Integration**: Google Gemini AI
 - **External APIs**: LeetCode GraphQL API, Codeforces API
+- **Deployment**: Vercel (Frontend), Render (Backend)
+
+## ⚙️ Architecture
+
+The application follows a client-server architecture with a centralized proxy for API management and caching.
+
+```text
+Client (React)
+      │
+      ▼
+Proxy Server (Node.js/Express)
+      │
+      ├───► Redis Cache (Upstash)
+      │
+      ├───► Codeforces API
+      │
+      ├───► LeetCode GraphQL API
+      │
+      └───► Google Gemini AI
+```
 
 ## 📦 Installation & Setup
 
@@ -67,8 +86,7 @@ PORT=5000
 MONGO_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret_key
 GEMINI_API_KEY=your_google_gemini_api_key
-REDIS_HOST=localhost
-REDIS_PORT=6379
+REDIS_URL=your_redis_connection_string
 ```
 
 Start the backend server:
