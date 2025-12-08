@@ -177,15 +177,38 @@ router.get("/combined/:cfHandle/:lcHandle", protect, async (req, res) => {
     const [cfStats, cfStatus, lcRating, lcCalendar, lcSolves] =
       await Promise.all([
         isCfValid
-          ? calculateCFStats(cfHandle)
+          ? calculateCFStats(cfHandle).catch(() => ({
+              totalSolved: 0,
+              heatmap: {},
+            }))
           : Promise.resolve({ totalSolved: 0, heatmap: {} }),
-        isCfValid ? fetchCFStatus(cfHandle) : Promise.resolve(null),
+        isCfValid
+          ? fetchCFStatus(cfHandle).catch(() => null)
+          : Promise.resolve(null),
         isLcValid
-          ? fetchLeetCodeRating(lcHandle)
+          ? fetchLeetCodeRating(lcHandle).catch(() => ({ rating: 0 }))
           : Promise.resolve({ rating: 0 }),
-        isLcValid ? fetchLeetCodeCalendar(lcHandle) : Promise.resolve({}),
+        isLcValid
+          ? fetchLeetCodeCalendar(lcHandle).catch(() => ({}))
+          : Promise.resolve({}),
         isLcValid
           ? fetchLeetCodeStats(lcHandle)
+              .then((res) =>
+                res
+                  ? res
+                  : {
+                      totalSolved: 0,
+                      easy: 0,
+                      medium: 0,
+                      hard: 0,
+                    }
+              )
+              .catch(() => ({
+                totalSolved: 0,
+                easy: 0,
+                medium: 0,
+                hard: 0,
+              }))
           : Promise.resolve({
               totalSolved: 0,
               easy: 0,
@@ -268,10 +291,16 @@ router.get("/rating-history/:cfHandle/:lcHandle", protect, async (req, res) => {
 
     const [cfHistory, lcHistory] = await Promise.all([
       cfHandle !== "null" && cfHandle !== "undefined"
-        ? fetchCFHistory(cfHandle)
+        ? fetchCFHistory(cfHandle).catch((e) => {
+            console.error("CF History fetch failed:", e.message);
+            return [];
+          })
         : Promise.resolve([]),
       lcHandle !== "null" && lcHandle !== "undefined"
-        ? fetchLeetCodeHistory(lcHandle)
+        ? fetchLeetCodeHistory(lcHandle).catch((e) => {
+            console.error("LC History fetch failed:", e.message);
+            return [];
+          })
         : Promise.resolve([]),
     ]);
 

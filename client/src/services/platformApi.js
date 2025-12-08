@@ -9,7 +9,6 @@ const getAuthHeaders = () => {
     console.warn("No token found in localStorage");
     return { headers: {} };
   }
-  console.log("Token being sent:", token);
   return {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -21,7 +20,7 @@ const getAuthHeaders = () => {
 export const getCodeforcesStats = async (handle) => {
   const response = await axios.get(
     `${base_url}/api/platforms/codeforces/${handle}`,
-    getAuthHeaders()
+    { ...getAuthHeaders(), timeout: 20000 }
   );
   return response.data;
 };
@@ -30,7 +29,7 @@ export const getCodeforcesStats = async (handle) => {
 export const getLeetCodeStats = async (handle) => {
   const response = await axios.get(
     `${base_url}/api/platforms/leetcode/${handle}`,
-    getAuthHeaders()
+    { ...getAuthHeaders(), timeout: 20000 }
   );
   return response.data;
 };
@@ -41,7 +40,7 @@ export const getRatingHistory = async (cfHandle, lcHandle) => {
   const lc = lcHandle || "null";
   const response = await axios.get(
     `${base_url}/api/platforms/rating-history/${cf}/${lc}`,
-    getAuthHeaders()
+    { ...getAuthHeaders(), timeout: 40000 }
   );
   return response.data;
 };
@@ -56,12 +55,13 @@ export const getRecommendations = async (handle) => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        timeout: 45000,
       }
     );
     return response.data;
   } catch (error) {
     console.error("Error fetching recommendations:", error);
-    return [];
+    return null;
   }
 };
 
@@ -74,6 +74,7 @@ export const getLeetCodeSuggestions = async (tag, difficulty) => {
       {
         params: { tag, difficulty },
         headers: { Authorization: `Bearer ${token}` },
+        timeout: 20000,
       }
     );
 
@@ -96,6 +97,7 @@ export const getCombinedStats = async (cfHandle, lcHandle) => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        timeout: 45000,
       }
     );
     return response.data;

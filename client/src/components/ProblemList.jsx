@@ -1,17 +1,54 @@
 import React from 'react';
-import { ExternalLink, Target, AlertCircle } from 'lucide-react';
+import { ExternalLink, Target, AlertCircle, Link as LinkIcon, RefreshCw } from 'lucide-react';
 
-const ProblemList = ({ problems }) => {
-    if (!problems || problems.length === 0) {
+const ProblemList = ({ problems, cfHandle }) => {
+    // Case 1: No Codeforces Handle Linked
+    if (!cfHandle) {
         return (
             <div className="bg-[#111f22] p-8 rounded-xl shadow-lg border border-gray-800 flex flex-col items-center text-center">
                 <div className="w-12 h-12 bg-gray-800/50 rounded-full flex items-center justify-center mb-3">
-                    <AlertCircle className="text-gray-500" size={24} />
+                    <LinkIcon className="text-blue-400" size={24} />
                 </div>
-                <h3 className="font-bold text-gray-300 text-lg">No Recommendations Yet</h3>
+                <h3 className="font-bold text-gray-300 text-lg">Link Codeforces Account</h3>
                 <p className="text-sm text-gray-500 mt-2 max-w-xs">
-                    Connect your Codeforces handle and solve some problems to get personalized AI recommendations.
+                    Connect your Codeforces handle in settings to get personalized AI recommendations.
                 </p>
+            </div>
+        );
+    }
+
+    // Case 2: Error Fetching Recommendations (problems is null)
+    if (problems === null) {
+        return (
+            <div className="bg-[#111f22] p-8 rounded-xl shadow-lg border border-red-900/30 flex flex-col items-center text-center">
+                <div className="w-12 h-12 bg-red-900/20 rounded-full flex items-center justify-center mb-3">
+                    <AlertCircle className="text-red-400" size={24} />
+                </div>
+                <h3 className="font-bold text-red-400 text-lg">Failed to Load Recommendations</h3>
+                <p className="text-sm text-gray-500 mt-2 max-w-xs">
+                    We couldn't fetch your recommendations right now. The Codeforces API might be busy.
+                </p>
+            </div>
+        );
+    }
+
+    // Case 3: Successfully Fetched but Empty (New User / No Rating)
+    if (problems.length === 0) {
+        return (
+            <div className="bg-[#111f22] p-8 rounded-xl shadow-lg border border-dashed border-gray-700 text-center flex flex-col items-center justify-center">
+                <div className="text-4xl mb-3">🎯</div>
+                <h3 className="font-bold text-gray-300 text-lg">No Recommendations Yet</h3>
+                <p className="text-gray-500 text-sm mb-4 max-w-xs">
+                    We need more data to generate smart hints. Solve a few problems on Codeforces first!
+                </p>
+                <a
+                    href="https://codeforces.com/problemset"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#0c1618] font-semibold hover:opacity-90 bg-[#4ecdc4] px-4 py-2 rounded transition-all"
+                >
+                    Go to Codeforces &rarr;
+                </a>
             </div>
         );
     }

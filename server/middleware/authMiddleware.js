@@ -3,7 +3,6 @@ const User = require("../models/User");
 
 const protect = async (req, res, next) => {
   let token;
-  console.log("Auth Header:", req.headers.authorization);
 
   if (
     req.headers.authorization &&
@@ -13,12 +12,8 @@ const protect = async (req, res, next) => {
       // Get token from header
       token = req.headers.authorization.split(" ")[1];
 
-      console.log("Token received:", token); // DEBUG
-
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-      console.log("Decoded:", decoded); // DEBUG
 
       // Get user from token (exclude password)
       req.user = await User.findById(decoded.id).select("-password");

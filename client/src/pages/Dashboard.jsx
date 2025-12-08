@@ -1,25 +1,27 @@
 import React, { useContext, useEffect, useState, useCallback } from 'react'
 import { AuthContext } from '../context/AuthContext'
-import { Activity, TrendingUp, Terminal, Code } from 'lucide-react'
+import { Activity, TrendingUp, Terminal, Code, RefreshCw } from 'lucide-react'
 import { getCombinedStats, getRecommendations, getRatingHistory } from '../services/platformApi';
 import ActivityGraph from '../components/ActivityGraph';
 import AiCoach from '../components/AiCoach';
 import ProblemList from '../components/ProblemList';
 import LeetCodeExplorer from '../components/LeetCodeExplorer';
 import SubmissionHeatmap from '../components/SubmissionHeatmap';
+import Skeleton from '../components/Skeleton';
+import toast from 'react-hot-toast';
 
 const Dashboard = () => {
     const { user } = useContext(AuthContext);
 
     // State
     const [combinedData, setCombinedData] = useState(null);
-    const [recommendations, setRecommendations] = useState([]);
+    const [recommendations, setRecommendations] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [ratingHistory, setRatingHistory] = useState({ codeforces: [], leetcode: [] });
 
     // Main refresh function
-    const refreshData = useCallback(async (cfHandle, lcHandle) => {
+    const refreshData = useCallback(async (cfHandle, lcHandle, isManual = false) => {
         if (!cfHandle && !lcHandle) {
             setIsLoading(false);
             setError("Link your account");
@@ -41,16 +43,37 @@ const Dashboard = () => {
             // 2. Fetch Recommendations (if CF handle exists)
             if (cfHandle) {
                 const recs = await getRecommendations(cfHandle);
-                setRecommendations(recs.recommendations || []);
+                setRecommendations(recs?.recommendations || null);
+            } else {
+                setRecommendations([]);
             }
 
             // 3. Fetch Rating History
             const history = await getRatingHistory(cfHandle, lcHandle);
             setRatingHistory(history);
 
+            if (isManual) {
+                toast.success("Stats updated successfully!");
+            }
+
         } catch (error) {
-            console.log("failed to load data", error);
-            setError("Failed to load some data");
+            console.error("failed to load data", error);
+
+            let errorMessage = "Failed to load data";
+
+            if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+                errorMessage = "External APIs are experiencing high latency. Please try again in a moment.";
+                toast.error("Network timeout: External platforms are slow to respond.", {
+                    duration: 5000,
+                    icon: '⚠️'
+                });
+            } else {
+                if (isManual) {
+                    toast.error("Failed to refresh stats");
+                }
+            }
+
+            setError(errorMessage);
         } finally {
             setIsLoading(false);
         }
@@ -61,10 +84,68 @@ const Dashboard = () => {
 
     // Initial load
     useEffect(() => {
-        if (cfHandle || lcHandle) {
-            refreshData(cfHandle, lcHandle);
-        }
+        refreshData(cfHandle, lcHandle, false);
     }, [cfHandle, lcHandle, refreshData]);
+
+    if (error && !combinedData && !isLoading) {
+        return (
+            <div className="min-h-screen bg-[#0c1618] flex items-center justify-center">
+                <div className="text-center p-8 max-w-md bg-[#111f22] rounded-xl border border-gray-800 shadow-2xl">
+                    <div className="text-yellow-500 text-5xl mb-4 mx-auto">⚠️</div>
+                    <h2 className="text-2xl font-bold text-white mb-2">Connection Issue</h2>
+                    <p className="text-gray-400 mb-6">{error}</p>
+                    <button
+                        onClick={() => refreshData(cfHandle, lcHandle, true)}
+                        className="bg-[#4ecdc4] text-[#0c1618] px-6 py-2 rounded-lg font-bold hover:bg-[#3dbdb4] transition-colors flex items-center justify-center gap-2 mx-auto"
+                    >
+                        <RefreshCw size={18} />
+                        Try Again
+                    </button>
+                </div>
+            </div>
+        )
+    }
+
+    if (isLoading && !combinedData) {
+        return (
+            <div className="min-h-screen bg-[#0c1618] pb-12 relative">
+                <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-8">
+                    {/* Header Skeleton */}
+                    <div className="flex justify-between items-center mb-6">
+                        <Skeleton className="h-8 w-48" />
+                        <Skeleton className="h-10 w-32" />
+                    </div>
+
+                    {/* Hero Card Skeleton */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <Skeleton className="h-40 w-full rounded-xl" />
+                        <Skeleton className="h-40 w-full rounded-xl" />
+                        <Skeleton className="h-40 w-full rounded-xl" />
+                    </div>
+
+                    {/* Heatmap Skeleton */}
+                    <Skeleton className="h-48 w-full rounded-xl" />
+
+                    {/* Graph Skeleton */}
+                    <Skeleton className="h-[300px] w-full rounded-xl" />
+
+                    {/* Grid Skeleton */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* Left Col */}
+                        <div className="lg:col-span-2 space-y-6">
+                            <Skeleton className="h-24 w-full rounded-xl" />
+                            <Skeleton className="h-24 w-full rounded-xl" />
+                            <Skeleton className="h-24 w-full rounded-xl" />
+                        </div>
+                        {/* Right Col */}
+                        <div className="space-y-6">
+                            <Skeleton className="h-[600px] w-full rounded-xl" />
+                        </div>
+                    </div>
+                </main>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-[#0c1618] pb-12 relative">
@@ -74,7 +155,7 @@ const Dashboard = () => {
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-2xl font-bold text-white">Welcome, {user?.username || 'Developer'}</h1>
                     <button
-                        onClick={() => refreshData(cfHandle, lcHandle)}
+                        onClick={() => refreshData(cfHandle, lcHandle, true)}
                         disabled={isLoading}
                         className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 border border-[#4ecdc4] text-[#4ecdc4] hover:bg-[#4ecdc4]/10 text-sm h-9 ${isLoading ? 'opacity-70 cursor-wait' : ''}`}
                     >
@@ -248,7 +329,7 @@ const Dashboard = () => {
 
                     {/* Recommendations (Left - 2 Cols) */}
                     <div className="lg:col-span-2 space-y-6">
-                        <ProblemList problems={recommendations} />
+                        <ProblemList problems={recommendations} cfHandle={user?.handles?.codeforces} />
                     </div>
 
                     {/* Right Column - LeetCode Explorer */}

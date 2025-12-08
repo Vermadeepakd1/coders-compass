@@ -77,6 +77,25 @@ const Login = () => {
                 </div>
 
                 <div className="bg-[#111f22] border border-gray-800/50 rounded-xl p-6 shadow-xl backdrop-blur-sm space-y-6 border-t-4 border-t-[#4ecdc4]">
+
+                    {/* Cold Start Warning Banner */}
+                    <div className="mb-6 bg-blue-900/20 border-l-4 border-blue-500 p-4 rounded-r shadow-sm">
+                        <div className="flex">
+                            <div className="shrink-0">
+                                <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                </svg>
+                            </div>
+                            <div className="ml-3">
+                                <p className="text-sm text-blue-400 font-bold">⚠️ Server Cold Start</p>
+                                <p className="text-xs text-blue-300 mt-1">
+                                    Because this app runs on a free tier, the backend sleeps when inactive.
+                                    <span className="font-bold"> The first login may take up to 60 seconds.</span> Please be patient!
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="flex gap-4 border-b border-gray-800 pb-4">
                         <button
                             className="flex-1 pb-2 text-sm font-medium transition-colors text-[#4ecdc4] border-b-2 border-[#4ecdc4]"

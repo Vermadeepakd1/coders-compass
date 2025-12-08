@@ -1,6 +1,7 @@
 import './App.css'
 import { AuthProvider } from './context/AuthContext';
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast';
 import Register from './pages/Register';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -13,6 +14,15 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <Toaster position="top-right"
+          toastOptions={{
+            style: {
+              background: '#111f22',
+              color: '#fff',
+              border: '1px solid #374151',
+            },
+          }}
+        />
         <Navbar />
         <Routes>
           <Route path='/' element={<HeroPage />} />

@@ -7,6 +7,7 @@ import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { askAiHint } from '../services/aiApi';
 import { MessageSquare, X, Send, Minimize2, Maximize2, Bot } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const SUGGESTIONS = [
     "Give me a hint",
@@ -64,6 +65,11 @@ const AiCoach = () => {
             setMessages(prev => [...prev, { role: 'ai', text: aiResponseText }]);
         } catch (err) {
             setMessages(prev => [...prev, { role: 'error', text: err.message }]);
+            if (err.response && err.response.status === 429) {
+                toast.error("Coach is busy! Please wait 1 minute.");
+            } else {
+                toast.error("Failed to get AI response");
+            }
         } finally {
             setLoading(false);
         }

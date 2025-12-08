@@ -1,6 +1,74 @@
 const axios = require("axios");
 const redis = require("../config/redis");
 
+// --- Helper: Fetch with Retry ---
+const fetchWithRetry = async (url, options = {}, retries = 1) => {
+  try {
+    return await axios.get(url, options);
+  } catch (error) {
+    if (
+      retries > 0 &&
+      (error.code === "ECONNABORTED" ||
+        (error.response && error.response.status >= 500) ||
+        (error.response && error.response.status === 429))
+    ) {
+      console.warn(
+        `Retrying ${url} due to ${error.message}. Attempts left: ${retries}`
+      );
+      await new Promise((res) => setTimeout(res, 1000)); // Wait 1s
+      return fetchWithRetry(url, options, retries - 1);
+    }
+    throw error;
+  }
+};
+
+// --- Shared: Fetch User Submissions (Cached) ---
+const fetchUserSubmissions = async (handle) => {
+  const cacheKey = `cf:submissions:${handle}`;
+
+  // 1. Try Redis
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      // console.log(`fetchUserSubmissions: Cache HIT for ${handle}`);
+      return JSON.parse(cached);
+    }
+  } catch (redisError) {
+    console.error("Redis read failed:", redisError.message);
+  }
+
+  // 2. Fetch from API
+  try {
+    const response = await fetchWithRetry(
+      `https://codeforces.com/api/user.status?handle=${handle}`,
+      { timeout: 10000 } // Reduced to 10s
+    );
+
+    if (response.data.status !== "OK") {
+      throw new Error("Codeforces API returned non-OK status");
+    }
+
+    const submissions = response.data.result;
+
+    // 3. Save to Redis (1 hour)
+    try {
+      await redis.set(
+        cacheKey,
+        JSON.stringify(submissions),
+        "EX",
+        60 * 60 // 1 hour
+      );
+    } catch (redisError) {
+      console.error("Redis write failed:", redisError.message);
+    }
+
+    return submissions;
+  } catch (error) {
+    console.error(`fetchUserSubmissions failed for ${handle}:`, error.message);
+    throw error; // Re-throw to be handled by caller
+  }
+};
+
 // helper function to fetch and cache problems
 const getCachedProblemSet = async () => {
   const cacheKey = "cf:problemset";
@@ -9,7 +77,7 @@ const getCachedProblemSet = async () => {
   try {
     const cached = await redis.get(cacheKey);
     if (cached) {
-      console.log("getCachedProblemSet: Cache HIT ⚡");
+      // console.log("getCachedProblemSet: Cache HIT ⚡");
       return JSON.parse(cached);
     }
   } catch (redisError) {
@@ -22,9 +90,9 @@ const getCachedProblemSet = async () => {
   //fetch from codeforces
   console.log("getCachedProblemSet: Cache MISS 🔴 - Fetching from CF...");
   try {
-    const response = await axios.get(
+    const response = await fetchWithRetry(
       "https://codeforces.com/api/problemset.problems",
-      { timeout: 10000 }
+      { timeout: 15000 } // Reduced to 15s
     );
 
     if (response.data.status !== "OK") {
@@ -63,26 +131,34 @@ const shuffleArray = (array) => {
 
 const getRecommendations = async (handle) => {
   try {
-    //get user rating
-    const userData = await fetchCFStatus(handle);
+    // Parallelize fetching: User Status, Submissions, Problem Set
+    // This significantly reduces total wait time compared to sequential awaiting
+    const [userData, submissions, allProblems] = await Promise.all([
+      fetchCFStatus(handle).catch((e) => {
+        console.error("getRecommendations: fetchCFStatus failed", e.message);
+        return null;
+      }),
+      fetchUserSubmissions(handle).catch((e) => {
+        console.error(
+          "getRecommendations: fetchUserSubmissions failed",
+          e.message
+        );
+        return [];
+      }),
+      getCachedProblemSet().catch((e) => {
+        console.error(
+          "getRecommendations: getCachedProblemSet failed",
+          e.message
+        );
+        return [];
+      }),
+    ]);
 
     if (!userData) {
       console.error("getRecommendations: Could not fetch user data");
-      return [];
+      return null; // Return null to indicate failure/not found
     }
     const currentRating = userData.rating === "Unrated" ? 800 : userData.rating;
-
-    //get all solved
-    const solvedResponse = await axios.get(
-      `https://codeforces.com/api/user.status?handle=${handle}`,
-      { timeout: 10000 }
-    );
-
-    if (solvedResponse.data.status !== "OK") {
-      console.error("getRecommendations: Failed to fetch submissions");
-      return [];
-    }
-    const submissions = solvedResponse.data.result;
 
     //filter accepted submission
     const acceptedSubmissions = submissions.filter(
@@ -96,12 +172,9 @@ const getRecommendations = async (handle) => {
       )
     );
 
-    // get all problem from cache
-    const allProblems = await getCachedProblemSet();
-
     if (!allProblems || allProblems.length === 0) {
       console.error("getRecommendations: No problems in cache");
-      return [];
+      return null;
     }
     // target rating
     const minRating = currentRating + 50;
@@ -124,16 +197,23 @@ const getRecommendations = async (handle) => {
     return recommendations;
   } catch (error) {
     console.error("getRecommendations Error:", error.message);
-    return [];
+    return null;
   }
 };
 
 // codeforces stats
 const fetchCFStatus = async (handle) => {
   const cfURL = `https://codeforces.com/api/user.info?handles=${handle}`;
+  const cacheKey = `cf:status:${handle}`;
+
+  // Try Redis for Status
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+  } catch (e) {}
 
   try {
-    const response = await axios.get(cfURL, { timeout: 5000 });
+    const response = await fetchWithRetry(cfURL, { timeout: 10000 });
     // console.log(response.data);
     if (response.data.status !== "OK") {
       throw new Error("Codeforces API Error");
@@ -153,6 +233,12 @@ const fetchCFStatus = async (handle) => {
       maxRank: ourdata.maxRank ?? "Unrated",
       titlePhoto: ourdata.titlePhoto,
     };
+
+    // Cache status for 15 mins
+    try {
+      await redis.set(cacheKey, JSON.stringify(payload), "EX", 900);
+    } catch (e) {}
+
     return payload;
   } catch (error) {
     console.error("Error fetching CF status:", error.message);
@@ -166,20 +252,16 @@ const calculateCFStats = async (handle) => {
   try {
     const cached = await redis.get(cacheKey);
     if (cached) {
-      console.log("calculateCFStats: Cache HIT ⚡");
+      // console.log("calculateCFStats: Cache HIT ⚡");
       return JSON.parse(cached);
     }
   } catch (redisError) {
     console.error("calculateCFStats: Redis read failed:", redisError.message);
   }
 
-  const url = `https://codeforces.com/api/user.status?handle=${handle}`;
   try {
-    const response = await axios.get(url);
-    if (response.data.status !== "OK") {
-      throw new Error("Codeforces API returned non-OK status");
-    }
-    const submissions = response.data.result || [];
+    // Use Shared Cached Function
+    const submissions = await fetchUserSubmissions(handle);
 
     // 1. Unique Solved Count
     const solvedSet = new Set();
@@ -218,8 +300,9 @@ const calculateCFStats = async (handle) => {
 
 const fetchCFHistory = async (handle) => {
   try {
-    const response = await axios.get(
-      `https://codeforces.com/api/user.rating?handle=${handle}`
+    const response = await fetchWithRetry(
+      `https://codeforces.com/api/user.rating?handle=${handle}`,
+      { timeout: 15000 }
     );
     if (response.data.status !== "OK") return [];
 

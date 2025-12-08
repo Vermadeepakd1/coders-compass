@@ -1,10 +1,40 @@
 const axios = require("axios");
+const redis = require("../config/redis");
+
+const LEETCODE_API_URL = "https://leetcode.com/graphql";
+
+// --- Helper: Fetch with Retry ---
+const fetchWithRetry = async (url, data, options = {}, retries = 1) => {
+  try {
+    return await axios.post(url, data, options);
+  } catch (error) {
+    if (
+      retries > 0 &&
+      (error.code === "ECONNABORTED" ||
+        (error.response && error.response.status >= 500))
+    ) {
+      console.warn(`Retrying LeetCode request... Attempts left: ${retries}`);
+      await new Promise((res) => setTimeout(res, 1000));
+      return fetchWithRetry(url, data, options, retries - 1);
+    }
+    throw error;
+  }
+};
 
 // to get stats for leetcode
 const fetchLeetCodeStats = async (handle) => {
-  const url = "https://leetcode.com/graphql";
+  const cacheKey = `lc:stats:${handle}`;
 
-  // query for easy, medium, hard solved problems
+  // 1. Try Redis
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      // console.log(`fetchLeetCodeStats: Cache HIT for ${handle}`);
+      return JSON.parse(cached);
+    }
+  } catch (e) {
+    // console.error("Redis read failed:", e.message);
+  }
 
   const query = `
       query userProblemsSolved($username: String!) {
@@ -25,30 +55,27 @@ const fetchLeetCodeStats = async (handle) => {
     `;
 
   try {
-    //the POST request
-    const response = await axios.post(
-      url,
+    const response = await fetchWithRetry(
+      LEETCODE_API_URL,
       {
         query: query,
         variables: { username: handle },
       },
       {
-        //headers(to look like a real browser)
         headers: {
           "Content-Type": "application/json",
           Referer: "https://leetcode.com",
           "User-Agent":
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
         },
+        timeout: 10000,
       }
     );
 
-    //check for errors from leetcode
     if (response.data.errors) {
       return null; // user likely dont exist
     }
 
-    //extract the data
     const data = response.data.data;
     const matchedUser = data?.matchedUser;
 
@@ -56,13 +83,23 @@ const fetchLeetCodeStats = async (handle) => {
       console.error("fetchLeetCodeStats: User not found");
       return null;
     }
-    return {
+
+    const result = {
       totalSolved: data.matchedUser.submitStats.acSubmissionNum[0].count,
       easy: data.matchedUser.submitStats.acSubmissionNum[1].count,
       medium: data.matchedUser.submitStats.acSubmissionNum[2].count,
       hard: data.matchedUser.submitStats.acSubmissionNum[3].count,
-      ranking: "Hidden", // LeetCode doesn't give ranking easily in this query
+      ranking: "Hidden",
     };
+
+    // 2. Save to Redis (30 mins)
+    try {
+      await redis.set(cacheKey, JSON.stringify(result), "EX", 1800);
+    } catch (e) {
+      console.error("Redis write failed:", e.message);
+    }
+
+    return result;
   } catch (error) {
     console.error("Leetcode Fetch Error:", error.message);
     return null;
@@ -71,10 +108,15 @@ const fetchLeetCodeStats = async (handle) => {
 
 // to get leetcode questions of specific topic
 const fetchLeetCodeFilter = async (tag, difficulty) => {
-  const url = "https://leetcode.com/graphql";
+  // Cache key based on tag and difficulty
+  const cacheKey = `lc:filter:${tag}:${difficulty || "all"}`;
+
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+  } catch (e) {}
 
   // 1. Map difficulty to LeetCode's format (UPPERCASE)
-  // Input: "medium" -> "MEDIUM"
   const difficultyUpper = difficulty ? difficulty.toUpperCase() : "MEDIUM";
 
   const query = `
@@ -101,9 +143,8 @@ const fetchLeetCodeFilter = async (tag, difficulty) => {
       }
     `;
 
-  // 2. The Payload
   const variables = {
-    categorySlug: "all-code-essentials", // or "algorithms"
+    categorySlug: "", // or "algorithms"
     skip: 0,
     limit: 50, // Fetch 50, we will pick random ones from this list
     filters: {
@@ -114,9 +155,12 @@ const fetchLeetCodeFilter = async (tag, difficulty) => {
   };
 
   try {
-    const response = await axios.post(
-      url,
-      { query, variables },
+    const response = await fetchWithRetry(
+      LEETCODE_API_URL,
+      {
+        query,
+        variables,
+      },
       {
         headers: {
           "Content-Type": "application/json",
@@ -124,15 +168,23 @@ const fetchLeetCodeFilter = async (tag, difficulty) => {
           "User-Agent":
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
         },
+        timeout: 10000,
       }
     );
 
-    // 3. Extract and Shuffle
-    const questions = response.data.data?.problemsetQuestionList?.questions;
-
-    if (!questions || questions.length === 0) {
-      console.log("fetchLeetCodeFilter: No questions found");
+    if (response.data.errors) {
+      console.error("LeetCode Filter API Error:", response.data.errors);
       return [];
+    }
+
+    const questions =
+      response.data.data?.problemsetQuestionList?.questions || [];
+
+    if (questions.length > 0) {
+      // Cache for 24 hours (problem lists don't change often)
+      try {
+        await redis.set(cacheKey, JSON.stringify(questions), "EX", 86400);
+      } catch (e) {}
     }
 
     // Helper to shuffle array (Fisher-Yates)
@@ -144,13 +196,20 @@ const fetchLeetCodeFilter = async (tag, difficulty) => {
     // Return top 3 random ones
     return questions.slice(0, 3);
   } catch (error) {
-    console.error("LeetCode Filter Error:", error.message);
+    console.error("fetchLeetCodeFilter Error:", error.message);
     return [];
   }
 };
 
 //to get leetcode contest rating
 const fetchLeetCodeRating = async (handle) => {
+  const cacheKey = `lc:rating:${handle}`;
+
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+  } catch (e) {}
+
   const query = `
       query userContestRankingInfo($username: String!) {
         userContestRanking(username: $username) {
@@ -159,8 +218,8 @@ const fetchLeetCodeRating = async (handle) => {
       }
     `;
   try {
-    const response = await axios.post(
-      "https://leetcode.com/graphql",
+    const response = await fetchWithRetry(
+      LEETCODE_API_URL,
       { query, variables: { username: handle } },
       {
         headers: {
@@ -168,9 +227,18 @@ const fetchLeetCodeRating = async (handle) => {
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
           "Content-Type": "application/json",
         },
+        timeout: 10000,
       }
     );
-    return response.data.data.userContestRanking || { rating: 0 };
+
+    const result = response.data.data.userContestRanking || { rating: 0 };
+
+    // Cache for 1 hour
+    try {
+      await redis.set(cacheKey, JSON.stringify(result), "EX", 3600);
+    } catch (e) {}
+
+    return result;
   } catch (error) {
     console.error("fetchLeetCodeRating Error:", error.message);
     return { rating: 0 };
@@ -179,6 +247,13 @@ const fetchLeetCodeRating = async (handle) => {
 
 // Get Submission Calendar (Returns {"1701234": 5, ...})
 const fetchLeetCodeCalendar = async (handle) => {
+  const cacheKey = `lc:calendar:${handle}`;
+
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+  } catch (e) {}
+
   const query = `
       query userProfileCalendar($username: String!) {
         matchedUser(username: $username) {
@@ -189,8 +264,8 @@ const fetchLeetCodeCalendar = async (handle) => {
       }
     `;
   try {
-    const response = await axios.post(
-      "https://leetcode.com/graphql",
+    const response = await fetchWithRetry(
+      LEETCODE_API_URL,
       { query, variables: { username: handle } },
       {
         headers: {
@@ -198,6 +273,7 @@ const fetchLeetCodeCalendar = async (handle) => {
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
           "Content-Type": "application/json",
         },
+        timeout: 10000,
       }
     );
     const calendarData =
@@ -208,7 +284,14 @@ const fetchLeetCodeCalendar = async (handle) => {
       return {};
     }
 
-    return JSON.parse(calendarData);
+    const result = JSON.parse(calendarData);
+
+    // Cache for 1 hour
+    try {
+      await redis.set(cacheKey, JSON.stringify(result), "EX", 3600);
+    } catch (e) {}
+
+    return result;
   } catch (error) {
     console.error("fetchLeetCodeCalendar Error:", error.message);
     return {};
@@ -217,6 +300,13 @@ const fetchLeetCodeCalendar = async (handle) => {
 
 // Get Contest History
 const fetchLeetCodeHistory = async (handle) => {
+  const cacheKey = `lc:history:${handle}`;
+
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+  } catch (e) {}
+
   const query = `
       query userContestRankingInfo($username: String!) {
         userContestRankingHistory(username: $username) {
@@ -230,8 +320,8 @@ const fetchLeetCodeHistory = async (handle) => {
       }
     `;
   try {
-    const response = await axios.post(
-      "https://leetcode.com/graphql",
+    const response = await fetchWithRetry(
+      LEETCODE_API_URL,
       { query, variables: { username: handle } },
       {
         headers: {
@@ -239,19 +329,27 @@ const fetchLeetCodeHistory = async (handle) => {
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
           "Content-Type": "application/json",
         },
+        timeout: 10000,
       }
     );
 
     const history = response.data.data?.userContestRankingHistory;
     if (!history) return [];
 
-    return history
+    const result = history
       .filter((h) => h.attended)
       .map((h) => ({
         date: new Date(h.contest.startTime * 1000).toISOString(),
         rating: h.rating,
         contestName: h.contest.title,
       }));
+
+    // Cache for 1 hour
+    try {
+      await redis.set(cacheKey, JSON.stringify(result), "EX", 3600);
+    } catch (e) {}
+
+    return result;
   } catch (error) {
     console.error("fetchLeetCodeHistory Error:", error.message);
     return [];
