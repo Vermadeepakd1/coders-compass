@@ -27,6 +27,18 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
     }, []);
 
+    const updateUser = useCallback((updates) => {
+        setUser(prev => {
+            const newUser = { ...prev, ...updates };
+            try {
+                localStorage.setItem("user", JSON.stringify(newUser));
+            } catch (e) {
+                console.error("Failed to update auth data", e);
+            }
+            return newUser;
+        });
+    }, []);
+
     useEffect(() => {
         try {
             const token = localStorage.getItem('token');
@@ -52,7 +64,7 @@ export const AuthProvider = ({ children }) => {
 
     }, []);
 
-    return <AuthContext.Provider value={{ user, login, logout, loading }}>
+    return <AuthContext.Provider value={{ user, setUser, updateUser, login, logout, loading }}>
         {children}
     </AuthContext.Provider>
 

@@ -8,12 +8,14 @@ import ProblemList from '../components/ProblemList';
 import LeetCodeExplorer from '../components/LeetCodeExplorer';
 import SubmissionHeatmap from '../components/SubmissionHeatmap';
 import Skeleton from '../components/Skeleton';
+import EditProfileModal from '../components/EditProfileModal';
 import toast from 'react-hot-toast';
 
 const Dashboard = () => {
-    const { user } = useContext(AuthContext);
+    const { user, updateUser } = useContext(AuthContext);
 
     // State
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [combinedData, setCombinedData] = useState(null);
     const [recommendations, setRecommendations] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -153,7 +155,19 @@ const Dashboard = () => {
 
                 {/* Header Section */}
                 <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-2xl font-bold text-white">Welcome, {user?.username || 'Developer'}</h1>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-2xl font-bold text-white">Welcome, {user?.username || 'Developer'}</h1>
+                        <button
+                            onClick={() => setIsEditModalOpen(true)}
+                            className="text-gray-500 hover:text-[#4ecdc4] transition-colors p-1 rounded-full hover:bg-[#4ecdc4]/10"
+                            title="Edit Handles"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                                <path d="m15 5 4 4" />
+                            </svg>
+                        </button>
+                    </div>
                     <button
                         onClick={() => refreshData(cfHandle, lcHandle, true)}
                         disabled={isLoading}
@@ -342,6 +356,15 @@ const Dashboard = () => {
 
             {/* Floating AI Coach - Placed outside the main grid flow */}
             <AiCoach />
+
+            {/* Edit Profile Modal */}
+            {isEditModalOpen && (
+                <EditProfileModal
+                    user={user}
+                    updateUser={updateUser}
+                    onClose={() => setIsEditModalOpen(false)}
+                />
+            )}
         </div>
     )
 }

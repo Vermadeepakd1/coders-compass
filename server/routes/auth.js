@@ -94,4 +94,41 @@ router.get("/test", protect, async (req, res) => {
   res.json({ message: "You are authorized!!", user: req.user });
 });
 
+// PUT /profile
+// Updates user handles
+router.put("/profile", protect, async (req, res) => {
+  try {
+    const { handles } = req.body;
+
+    // 1. Find the user
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // 2. Update handles
+    // Use explicit assignment to allow empty strings (clearing handles)
+    if (handles.codeforces !== undefined)
+      user.handles.codeforces = handles.codeforces;
+    if (handles.leetcode !== undefined)
+      user.handles.leetcode = handles.leetcode;
+    if (handles.codechef !== undefined)
+      user.handles.codechef = handles.codechef;
+
+    // 3. Save
+    const updatedUser = await user.save();
+
+    // 4. Return the new user object (so frontend can update state)
+    res.json({
+      _id: updatedUser._id,
+      username: updatedUser.username,
+      email: updatedUser.email,
+      handles: updatedUser.handles,
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
 module.exports = router;
