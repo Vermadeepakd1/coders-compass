@@ -12,7 +12,7 @@ import EditProfileModal from '../components/EditProfileModal';
 import toast from 'react-hot-toast';
 
 const Dashboard = () => {
-    const { user, updateUser } = useContext(AuthContext);
+    const { user, updateUser, logout } = useContext(AuthContext);
 
     // State
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -34,25 +34,35 @@ const Dashboard = () => {
         setError(null);
 
         try {
-            // 1. Fetch Combined Stats
-            const stats = await getCombinedStats(cfHandle, lcHandle);
-            if (stats) {
-                setCombinedData(stats);
+            // Parallelize requests for faster loading
+            const [statsResult, recsResult, historyResult] = await Promise.allSettled([
+                getCombinedStats(cfHandle, lcHandle),
+                cfHandle ? getRecommendations(cfHandle) : Promise.resolve({ recommendations: [] }),
+                getRatingHistory(cfHandle, lcHandle)
+            ]);
+
+            // 1. Process Combined Stats (Critical)
+            if (statsResult.status === 'fulfilled' && statsResult.value) {
+                setCombinedData(statsResult.value);
             } else {
-                setError("Failed to load combined stats");
+                throw statsResult.reason || new Error("Failed to load combined stats");
             }
 
-            // 2. Fetch Recommendations (if CF handle exists)
-            if (cfHandle) {
-                const recs = await getRecommendations(cfHandle);
-                setRecommendations(recs?.recommendations || null);
+            // 2. Process Recommendations (Non-critical)
+            if (recsResult.status === 'fulfilled') {
+                setRecommendations(recsResult.value?.recommendations || []);
             } else {
+                console.warn("Failed to load recommendations", recsResult.reason);
                 setRecommendations([]);
             }
 
-            // 3. Fetch Rating History
-            const history = await getRatingHistory(cfHandle, lcHandle);
-            setRatingHistory(history);
+            // 3. Process Rating History (Non-critical)
+            if (historyResult.status === 'fulfilled') {
+                setRatingHistory(historyResult.value);
+            } else {
+                console.warn("Failed to load rating history", historyResult.reason);
+                setRatingHistory({ codeforces: [], leetcode: [] });
+            }
 
             if (isManual) {
                 toast.success("Stats updated successfully!");
@@ -60,6 +70,13 @@ const Dashboard = () => {
 
         } catch (error) {
             console.error("failed to load data", error);
+
+            // Handle Session Expiry
+            if (error.response?.status === 401) {
+                toast.error("Session expired. Please login again.");
+                logout();
+                return;
+            }
 
             let errorMessage = "Failed to load data";
 
