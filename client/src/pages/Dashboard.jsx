@@ -96,7 +96,7 @@ const Dashboard = () => {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [logout]);
 
     const cfHandle = user?.handles?.codeforces;
     const lcHandle = user?.handles?.leetcode;
