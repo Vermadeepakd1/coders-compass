@@ -172,27 +172,27 @@ const Dashboard = () => {
 
                 {/* Header Section */}
                 <div className="flex justify-between items-center mb-6">
+                    <h1 className="text-2xl font-bold text-white">Welcome, {user?.username || 'Developer'}</h1>
                     <div className="flex items-center gap-3">
-                        <h1 className="text-2xl font-bold text-white">Welcome, {user?.username || 'Developer'}</h1>
                         <button
                             onClick={() => setIsEditModalOpen(true)}
-                            className="text-gray-500 hover:text-[#4ecdc4] transition-colors p-1 rounded-full hover:bg-[#4ecdc4]/10"
-                            title="Edit Handles"
+                            className="px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 border border-purple-500 text-purple-400 hover:bg-purple-500/10 text-sm h-9"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
                                 <path d="m15 5 4 4" />
                             </svg>
+                            Edit Handles
+                        </button>
+                        <button
+                            onClick={() => refreshData(cfHandle, lcHandle, true)}
+                            disabled={isLoading}
+                            className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 border border-[#4ecdc4] text-[#4ecdc4] hover:bg-[#4ecdc4]/10 text-sm h-9 ${isLoading ? 'opacity-70 cursor-wait' : ''}`}
+                        >
+                            <Activity size={16} className={isLoading ? "animate-spin" : ""} />
+                            {isLoading ? "Syncing..." : "Refresh Stats"}
                         </button>
                     </div>
-                    <button
-                        onClick={() => refreshData(cfHandle, lcHandle, true)}
-                        disabled={isLoading}
-                        className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 border border-[#4ecdc4] text-[#4ecdc4] hover:bg-[#4ecdc4]/10 text-sm h-9 ${isLoading ? 'opacity-70 cursor-wait' : ''}`}
-                    >
-                        <Activity size={16} className={isLoading ? "animate-spin" : ""} />
-                        {isLoading ? "Syncing..." : "Refresh Stats"}
-                    </button>
                 </div>
 
                 {/* --- STATS GRID (Replaces Hero Section) --- */}
