@@ -20,7 +20,7 @@ const getAuthHeaders = () => {
 export const getCodeforcesStats = async (handle) => {
   const response = await axios.get(
     `${base_url}/api/platforms/codeforces/${handle}`,
-    { ...getAuthHeaders(), timeout: 20000 }
+    { ...getAuthHeaders(), timeout: 20000 },
   );
   return response.data;
 };
@@ -29,18 +29,28 @@ export const getCodeforcesStats = async (handle) => {
 export const getLeetCodeStats = async (handle) => {
   const response = await axios.get(
     `${base_url}/api/platforms/leetcode/${handle}`,
-    { ...getAuthHeaders(), timeout: 20000 }
+    { ...getAuthHeaders(), timeout: 20000 },
+  );
+  return response.data;
+};
+
+// get codechef stats
+export const getCodeChefStats = async (handle) => {
+  const response = await axios.get(
+    `${base_url}/api/platforms/codechef/${handle}`,
+    { ...getAuthHeaders(), timeout: 20000 },
   );
   return response.data;
 };
 
 // Get Rating History
-export const getRatingHistory = async (cfHandle, lcHandle) => {
+export const getRatingHistory = async (cfHandle, lcHandle, ccHandle) => {
   const cf = cfHandle || "null";
   const lc = lcHandle || "null";
+  const cc = ccHandle || "null";
   const response = await axios.get(
-    `${base_url}/api/platforms/rating-history/${cf}/${lc}`,
-    { ...getAuthHeaders(), timeout: 40000 }
+    `${base_url}/api/platforms/rating-history/${cf}/${lc}/${cc}`,
+    { ...getAuthHeaders(), timeout: 40000 },
   );
   return response.data;
 };
@@ -56,7 +66,7 @@ export const getRecommendations = async (handle) => {
           Authorization: `Bearer ${token}`,
         },
         timeout: 45000,
-      }
+      },
     );
     return response.data;
   } catch (error) {
@@ -75,7 +85,7 @@ export const getLeetCodeSuggestions = async (tag, difficulty) => {
         params: { tag, difficulty },
         headers: { Authorization: `Bearer ${token}` },
         timeout: 20000,
-      }
+      },
     );
 
     return response.data;
@@ -86,19 +96,20 @@ export const getLeetCodeSuggestions = async (tag, difficulty) => {
 };
 
 // get combined stats
-export const getCombinedStats = async (cfHandle, lcHandle) => {
+export const getCombinedStats = async (cfHandle, lcHandle, ccHandle) => {
   try {
     const cf = cfHandle || "null";
     const lc = lcHandle || "null";
+    const cc = ccHandle || "null";
     const token = localStorage.getItem("token");
     const response = await axios.get(
-      `${base_url}/api/platforms/combined/${cf}/${lc}`,
+      `${base_url}/api/platforms/combined/${cf}/${lc}/${cc}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
         },
         timeout: 45000,
-      }
+      },
     );
     return response.data;
   } catch (error) {

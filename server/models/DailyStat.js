@@ -16,6 +16,10 @@ const dailyStatSchema = new mongoose.Schema(
         type: Number,
         default: null,
       },
+      solved: {
+        type: Number,
+        default: null,
+      },
       rank: {
         type: String,
         default: null,
@@ -52,9 +56,13 @@ const dailyStatSchema = new mongoose.Schema(
         type: String,
         default: null,
       },
+      totalSolved: {
+        type: Number,
+        default: null,
+      },
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 dailyStatSchema.index({ user: 1, date: 1 }, { unique: true });
 module.exports = mongoose.model("DailyStat", dailyStatSchema);

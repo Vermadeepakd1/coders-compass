@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState, useCallback } from 'react'
 import { AuthContext } from '../context/AuthContext'
-import { Activity, TrendingUp, Terminal, Code, RefreshCw } from 'lucide-react'
+import { Activity, TrendingUp, Terminal, Code, RefreshCw, Hash } from 'lucide-react'
 import { getCombinedStats, getRecommendations, getRatingHistory } from '../services/platformApi';
 import ActivityGraph from '../components/ActivityGraph';
 import AiCoach from '../components/AiCoach';
@@ -20,11 +20,11 @@ const Dashboard = () => {
     const [recommendations, setRecommendations] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [ratingHistory, setRatingHistory] = useState({ codeforces: [], leetcode: [] });
+    const [ratingHistory, setRatingHistory] = useState({ codeforces: [], leetcode: [], codechef: [] });
 
     // Main refresh function
-    const refreshData = useCallback(async (cfHandle, lcHandle, isManual = false) => {
-        if (!cfHandle && !lcHandle) {
+    const refreshData = useCallback(async (cfHandle, lcHandle, ccHandle, isManual = false) => {
+        if (!cfHandle && !lcHandle && !ccHandle) {
             setIsLoading(false);
             setError("Link your account");
             return;
@@ -36,9 +36,9 @@ const Dashboard = () => {
         try {
             // Parallelize requests for faster loading
             const [statsResult, recsResult, historyResult] = await Promise.allSettled([
-                getCombinedStats(cfHandle, lcHandle),
+                getCombinedStats(cfHandle, lcHandle, ccHandle),
                 cfHandle ? getRecommendations(cfHandle) : Promise.resolve({ recommendations: [] }),
-                getRatingHistory(cfHandle, lcHandle)
+                getRatingHistory(cfHandle, lcHandle, ccHandle)
             ]);
 
             // 1. Process Combined Stats (Critical)
@@ -61,7 +61,7 @@ const Dashboard = () => {
                 setRatingHistory(historyResult.value);
             } else {
                 console.warn("Failed to load rating history", historyResult.reason);
-                setRatingHistory({ codeforces: [], leetcode: [] });
+                setRatingHistory({ codeforces: [], leetcode: [], codechef: [] });
             }
 
             if (isManual) {
@@ -100,11 +100,12 @@ const Dashboard = () => {
 
     const cfHandle = user?.handles?.codeforces;
     const lcHandle = user?.handles?.leetcode;
+    const ccHandle = user?.handles?.codechef;
 
     // Initial load
     useEffect(() => {
-        refreshData(cfHandle, lcHandle, false);
-    }, [cfHandle, lcHandle, refreshData]);
+        refreshData(cfHandle, lcHandle, ccHandle, false);
+    }, [cfHandle, lcHandle, ccHandle, refreshData]);
 
     if (error && !combinedData && !isLoading) {
         return (
@@ -114,7 +115,7 @@ const Dashboard = () => {
                     <h2 className="text-2xl font-bold text-white mb-2">Connection Issue</h2>
                     <p className="text-gray-400 mb-6">{error}</p>
                     <button
-                        onClick={() => refreshData(cfHandle, lcHandle, true)}
+                        onClick={() => refreshData(cfHandle, lcHandle, ccHandle, true)}
                         className="bg-[#4ecdc4] text-[#0c1618] px-6 py-2 rounded-lg font-bold hover:bg-[#3dbdb4] transition-colors flex items-center justify-center gap-2 mx-auto"
                     >
                         <RefreshCw size={18} />
@@ -136,7 +137,7 @@ const Dashboard = () => {
                     </div>
 
                     {/* Hero Card Skeleton */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                         <Skeleton className="h-40 w-full rounded-xl" />
                         <Skeleton className="h-40 w-full rounded-xl" />
                         <Skeleton className="h-40 w-full rounded-xl" />
@@ -185,7 +186,7 @@ const Dashboard = () => {
                             Edit Handles
                         </button>
                         <button
-                            onClick={() => refreshData(cfHandle, lcHandle, true)}
+                            onClick={() => refreshData(cfHandle, lcHandle, ccHandle, true)}
                             disabled={isLoading}
                             className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 border border-[#4ecdc4] text-[#4ecdc4] hover:bg-[#4ecdc4]/10 text-sm h-9 ${isLoading ? 'opacity-70 cursor-wait' : ''}`}
                         >
@@ -197,7 +198,7 @@ const Dashboard = () => {
 
                 {/* --- STATS GRID (Replaces Hero Section) --- */}
                 {combinedData && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
 
                         {/* 1. TOTAL SOLVED CARD */}
                         <div className="bg-[#111f22] border border-gray-800/50 rounded-xl p-6 shadow-xl relative overflow-hidden group hover:border-[#4ecdc4]/50 transition-colors">
@@ -222,6 +223,10 @@ const Dashboard = () => {
                                             <span className="text-yellow-400">{combinedData.leetcode.medium} M</span>
                                             <span className="text-red-400">{combinedData.leetcode.hard} H</span>
                                         </span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                                        <span className="text-gray-300">CC: <span className="font-bold text-white">{combinedData.codechef?.solved || 0}</span></span>
                                     </div>
                                 </div>
                             </div>
@@ -298,6 +303,34 @@ const Dashboard = () => {
                                 )}
                             </div>
                         </div>
+
+                        {/* 4. CODECHEF CARD */}
+                        <div className="bg-[#111f22] border border-gray-800/50 rounded-xl p-6 shadow-xl relative overflow-hidden group hover:border-amber-500/50 transition-colors">
+                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
+                                <Hash size={100} className="text-white" />
+                            </div>
+                            <div className="relative z-10">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-amber-500 border border-gray-700">
+                                        <Hash size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-white font-bold text-lg">CodeChef</h3>
+                                        <p className="text-xs text-gray-500 uppercase">{combinedData.codechef?.stars || 'Unrated'}</p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-2">
+                                    <p className="text-gray-400 text-sm mb-1">Current Rating</p>
+                                    <div className="text-4xl font-bold text-amber-400">
+                                        {combinedData.codechef?.rating !== "N/A" ? combinedData.codechef?.rating : "N/A"}
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Stars: <span className="text-amber-300 font-medium">{combinedData.codechef?.stars || 'Unrated'}</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 )}
 
@@ -327,8 +360,8 @@ const Dashboard = () => {
                         <TrendingUp size={18} className="text-[#4ecdc4]" />
                         Rating History
                     </h3>
-                    {(ratingHistory.codeforces.length > 0 || ratingHistory.leetcode.length > 0) ? (
-                        <div className={`grid grid-cols-1 ${ratingHistory.leetcode.length > 0 ? 'md:grid-cols-2' : ''} gap-6`}>
+                    {(ratingHistory.codeforces.length > 0 || ratingHistory.leetcode.length > 0 || ratingHistory.codechef.length > 0) ? (
+                        <div className={`grid grid-cols-1 ${((ratingHistory.codeforces.length > 0 ? 1 : 0) + (ratingHistory.leetcode.length > 0 ? 1 : 0) + (ratingHistory.codechef.length > 0 ? 1 : 0)) > 1 ? 'md:grid-cols-2' : ''} ${((ratingHistory.codeforces.length > 0 ? 1 : 0) + (ratingHistory.leetcode.length > 0 ? 1 : 0) + (ratingHistory.codechef.length > 0 ? 1 : 0)) > 2 ? 'xl:grid-cols-3' : ''} gap-6`}>
                             {ratingHistory.codeforces.length > 0 && (
                                 <ActivityGraph
                                     data={ratingHistory.codeforces}
@@ -343,6 +376,14 @@ const Dashboard = () => {
                                     platform="rating"
                                     color="#ffa116"
                                     title="LeetCode"
+                                />
+                            )}
+                            {ratingHistory.codechef.length > 0 && (
+                                <ActivityGraph
+                                    data={ratingHistory.codechef}
+                                    platform="rating"
+                                    color="#f59e0b"
+                                    title="CodeChef"
                                 />
                             )}
                         </div>

@@ -8,6 +8,9 @@ import Dashboard from './pages/Dashboard';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import HeroPage from './pages/HeroPage';
+import ContestCalendar from './pages/ContestCalendar';
+import Leaderboard from './pages/Leaderboard';
+import Resources from './pages/Resources';
 
 function App() {
 
@@ -31,6 +34,21 @@ function App() {
           <Route path='/dashboard' element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path='/contests' element={
+            <ProtectedRoute>
+              <ContestCalendar />
+            </ProtectedRoute>
+          } />
+          <Route path='/leaderboard' element={
+            <ProtectedRoute>
+              <Leaderboard />
+            </ProtectedRoute>
+          } />
+          <Route path='/resources' element={
+            <ProtectedRoute>
+              <Resources />
             </ProtectedRoute>
           } />
 

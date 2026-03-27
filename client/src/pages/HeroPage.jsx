@@ -1,6 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Terminal, Code, TrendingUp, Brain, Zap, ChevronRight, Globe, Shield, Target } from 'lucide-react'
+import { Terminal, Code, TrendingUp, Brain, Zap, ChevronRight, Globe, Shield, Target, CalendarClock, Trophy, BookOpen } from 'lucide-react'
 
 const HeroPage = () => {
     const navigate = useNavigate()
@@ -53,12 +53,7 @@ const HeroPage = () => {
                     <div className="flex justify-center items-center gap-8 md:gap-16 flex-wrap">
                         <div className="flex items-center gap-2 text-xl font-bold text-white hover:scale-105 transition-transform"><Terminal className="text-yellow-500" /> LeetCode</div>
                         <div className="flex items-center gap-2 text-xl font-bold text-white hover:scale-105 transition-transform"><Code className="text-blue-500" /> Codeforces</div>
-                        <div className="flex items-center gap-2 text-xl font-bold text-gray-600 relative group cursor-help">
-                            <Globe className="text-gray-600" /> CodeChef
-                            <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-800 text-xs text-[#4ecdc4] px-3 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-[#4ecdc4]/30 shadow-lg">
-                                Coming Soon
-                            </span>
-                        </div>
+                        <div className="flex items-center gap-2 text-xl font-bold text-white hover:scale-105 transition-transform"><Globe className="text-amber-500" /> CodeChef</div>
                     </div>
                 </div>
 
@@ -95,18 +90,18 @@ const HeroPage = () => {
                     </div>
                 </div>
 
-                {/* Coming Soon Section */}
+                {/* Live Features Section */}
                 <div className="mb-24">
                     <div className="text-center mb-12">
-                        <h2 className="text-3xl font-bold text-white mb-4">Roadmap & Future Features</h2>
-                        <p className="text-gray-400">We are constantly working to make Coder's Compass better.</p>
+                        <h2 className="text-3xl font-bold text-white mb-4">What You Can Use Right Now</h2>
+                        <p className="text-gray-400">Core competitive-programming workflows are now live end-to-end.</p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {[
-                            { icon: Globe, title: "CodeChef Support", desc: "Track ratings & stars" },
-                            { icon: Shield, title: "Contest Reminders", desc: "Never miss a round" },
-                            { icon: Target, title: "Friend Leaderboards", desc: "Compete with peers" },
-                            { icon: Zap, title: "Mobile App", desc: "Code on the go" }
+                            { icon: Globe, title: "CodeChef Support", desc: "Track ratings, stars, and history" },
+                            { icon: CalendarClock, title: "Contest Calendar", desc: "View upcoming contests and add to Google Calendar" },
+                            { icon: Trophy, title: "CC Leaderboard", desc: "Global, monthly, and weekly ranking views" },
+                            { icon: BookOpen, title: "Resources Hub", desc: "Curated CP and interview prep resources" }
                         ].map((item, idx) => (
                             <div key={idx} className="p-6 rounded-xl bg-[#111f22]/50 border border-gray-800/50 flex flex-col items-center text-center hover:bg-[#111f22] transition-colors">
                                 <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center mb-4 text-gray-400">
@@ -114,7 +109,7 @@ const HeroPage = () => {
                                 </div>
                                 <h3 className="font-semibold text-white mb-1">{item.title}</h3>
                                 <p className="text-sm text-gray-500">{item.desc}</p>
-                                <span className="mt-3 text-[10px] uppercase tracking-wider font-bold text-[#4ecdc4] bg-[#4ecdc4]/10 px-2 py-1 rounded-full">Coming Soon</span>
+                                <span className="mt-3 text-[10px] uppercase tracking-wider font-bold text-emerald-300 bg-emerald-500/10 px-2 py-1 rounded-full border border-emerald-400/20">Live</span>
                             </div>
                         ))}
                     </div>

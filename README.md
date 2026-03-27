@@ -1,148 +1,136 @@
-# 🧭 Coder's Compass
+# Coder's Compass
 
-**Navigate Your Path to Coding Mastery**
+Navigate your path to coding mastery.
 
-A smart progress tracker and AI-powered coach for competitive programmers.
-**Live Demo:** [https://coders-compass.vercel.app](https://coders-compass.vercel.app)
+Coder's Compass is a full-stack competitive programming companion that unifies stats from multiple platforms, provides AI assistance, and helps you plan contests and learning in one place.
+
+Live Demo: https://coders-compass.vercel.app
 
 ![Coder's Compass Dashboard](./screenshots/dashboard.png)
 
-## 🚀 Key Features
+## Key Features
 
-- **Multi-Platform Tracking**: Aggregates real-time stats from **Codeforces** and **LeetCode** into a single dashboard.
-- **AI Coach**: Integrated **Google Gemini AI** to provide context-aware hints without revealing code solutions.
-- **Unified Heatmap**: A GitHub-style activity graph merging submission history from multiple platforms.
-- **Smart Caching**: Implemented **Redis** caching strategy to reduce external API latency by 90% and save AI quotas.
-- **System Design**: Protected by **Rate Limiting** and **JWT Authentication** for production-grade security.
-- **Rating History Graphs**: Interactive graphs tracking your contest ratings over time.
-- **Problem Explorer**: Filter and find LeetCode problems by tag and difficulty.
+- Multi-platform profile tracking across Codeforces, LeetCode, and CodeChef
+- Unified dashboard with solved counts, platform cards, heatmap, and rating history
+- AI Coach powered by Google Gemini for hint-based guidance
+- Contest Calendar with upcoming contests and one-click Google Calendar add
+- CC Leaderboard with global, monthly, and weekly windows
+- Learning Resources page for curated CP and interview prep links
+- Protected routes with JWT auth and rate limiting
+- Resilient caching with Redis Cloud and automatic in-memory fallback
 
-## 🔮 Coming Soon
+## Tech Stack
 
-- **CodeChef Integration**: Track your CodeChef ratings and stars.
-- **Contest Reminders**: Get notified about upcoming contests via email or push notifications.
-- **Friend Leaderboards**: Add friends and compete on custom leaderboards.
-- **Topic Strength Analysis**: Detailed breakdown of your strong and weak topics (e.g., DP, Graphs, Greedy).
+- Frontend: React, Vite, Tailwind CSS, Recharts, React Calendar Heatmap
+- Backend: Node.js, Express
+- Database: MongoDB Atlas
+- Cache: Redis Cloud (`redis` client) with memory fallback adapter
+- AI: Google Gemini
+- External APIs: Codeforces API, LeetCode GraphQL, CodeChef endpoints
+- Deployment: Vercel (frontend), Render (backend)
 
-## 🛠️ Tech Stack
-
-- **Frontend**: React.js, Vite, Tailwind CSS, Recharts, React Calendar Heatmap
-- **Backend**: Node.js, Express.js
-- **Database**: MongoDB Atlas (User Data), Upstash Redis (Caching)
-- **AI Integration**: Google Gemini AI
-- **External APIs**: LeetCode GraphQL API, Codeforces API
-- **Deployment**: Vercel (Frontend), Render (Backend)
-
-## ⚙️ Architecture
-
-The application follows a client-server architecture with a centralized proxy for API management and caching.
+## Architecture
 
 ```text
 Client (React)
-      │
-      ▼
-Proxy Server (Node.js/Express)
-      │
-      ├───► Redis Cache (Upstash)
-      │
-      ├───► Codeforces API
-      │
-      ├───► LeetCode GraphQL API
-      │
-      └───► Google Gemini AI
+      |
+      v
+API Server (Node.js / Express)
+      |
+      +--> Redis Cache Layer (Redis Cloud -> memory fallback)
+      +--> MongoDB Atlas
+      +--> Codeforces API
+      +--> LeetCode GraphQL
+      +--> CodeChef
+      +--> Gemini AI
 ```
 
-## 📦 Installation & Setup
-
-Follow these steps to set up the project locally.
+## Local Setup
 
 ### Prerequisites
 
-- Node.js (v16 or higher)
-- MongoDB (Local instance or MongoDB Atlas)
-- Redis (Optional, but recommended for caching)
-- API Keys for Google Gemini
+- Node.js 18+
+- MongoDB connection string
+- Redis Cloud credentials (or use memory-only fallback)
+- Gemini API key
 
-### 1. Clone the Repository
+### 1) Clone
 
 ```bash
 git clone https://github.com/Vermadeepakd1/coders-compass.git
 cd coders-compass
 ```
 
-### 2. Backend Setup
-
-Navigate to the server directory and install dependencies:
+### 2) Backend Setup
 
 ```bash
 cd server
 npm install
 ```
 
-Create a `.env` file in the `server` directory with the following variables:
+Create `server/.env`:
 
 ```env
 PORT=5000
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret_key
-GEMINI_API_KEY=your_google_gemini_api_key
-REDIS_URL=your_redis_connection_string
+MONGODB_URI=your_mongodb_uri
+JWT_SECRET=your_jwt_secret
+GEMINI_API_KEY=your_gemini_key
+
+# Redis (recommended)
+REDIS_HOST=your_redis_host
+REDIS_PORT=your_redis_port
+REDIS_USERNAME=default
+REDIS_PASSWORD=your_redis_password
+
+# Optional alternate form
+# REDIS_URL=redis://username:password@host:port
+
+# Optional: force memory-only cache
+# CACHE_DRIVER=memory
 ```
 
-Start the backend server:
+Run backend:
 
 ```bash
-npm start
-# or for development with nodemon
 npm run dev
 ```
 
-### 3. Frontend Setup
-
-Navigate to the client directory and install dependencies:
+### 3) Frontend Setup
 
 ```bash
-cd client
+cd ../client
 npm install
 ```
 
-Create a `.env` file in the `client` directory:
+Create `client/.env`:
 
 ```env
 VITE_API_URL=http://localhost:5000
 ```
 
-Start the development server:
+Run frontend:
 
 ```bash
 npm run dev
 ```
 
-The application should now be running at `http://localhost:5173`.
+App runs at `http://localhost:5173`.
 
-## 🤝 Contribution Guidelines
+## Notes on Caching
 
-We welcome contributions from the community! Whether it's fixing bugs, adding new features, or improving documentation, your help is appreciated.
+- If Redis is healthy, cache reads/writes use Redis Cloud.
+- If Redis is unavailable, caching automatically falls back to in-memory TTL cache.
+- In-memory cache is fast but non-persistent (clears on server restart).
 
-1.  **Fork the Project**: Click the "Fork" button at the top right of this page.
-2.  **Clone your Fork**: `git clone https://github.com/YOUR_USERNAME/coders-compass.git`
-3.  **Create a Feature Branch**: `git checkout -b feature/AmazingFeature`
-4.  **Commit your Changes**: `git commit -m 'Add some AmazingFeature'`
-5.  **Push to the Branch**: `git push origin feature/AmazingFeature`
-6.  **Open a Pull Request**: Go to the original repository and open a PR describing your changes.
+## Contributing
 
-### Code Style
+1. Fork the repository
+2. Create a branch (`feature/your-feature`)
+3. Commit your changes
+4. Push to your branch
+5. Open a pull request
 
-- Please ensure your code follows the existing style (ESLint configuration provided).
-- Use meaningful variable and function names.
-- Comment your code where necessary.
+## Contact
 
-## 📞 Contact & Support
-
-If you have any suggestions, doubts, or want to report a bug, please feel free to reach out.
-
-**Email**: [vermadeepakd1@gmail.com](mailto:vermadeepakd1@gmail.com)
-
----
-
-_Built with ❤️ by [Deepak Verma](https://github.com/Vermadeepakd1)_
+- Email: vermadeepakd1@gmail.com
+- GitHub: https://github.com/Vermadeepakd1

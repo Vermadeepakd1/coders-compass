@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 const EditProfileModal = ({ user, updateUser, onClose }) => {
     const [formData, setFormData] = useState({
         codeforces: user.handles?.codeforces || '',
+        codechef: user.handles?.codechef || '',
         leetcode: user.handles?.leetcode || ''
     });
     const [loading, setLoading] = useState(false);
@@ -44,6 +45,17 @@ const EditProfileModal = ({ user, updateUser, onClose }) => {
                             value={formData.codeforces}
                             onChange={e => setFormData({ ...formData, codeforces: e.target.value })}
                             placeholder="Enter Codeforces handle"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">CodeChef Handle</label>
+                        <input
+                            type="text"
+                            className="w-full bg-[#1f2937] border border-gray-700 text-white p-2 rounded focus:outline-none focus:border-[#4ecdc4] transition-colors"
+                            value={formData.codechef}
+                            onChange={e => setFormData({ ...formData, codechef: e.target.value })}
+                            placeholder="Enter CodeChef handle"
                         />
                     </div>
 

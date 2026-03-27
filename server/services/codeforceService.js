@@ -13,7 +13,7 @@ const fetchWithRetry = async (url, options = {}, retries = 1) => {
         (error.response && error.response.status === 429))
     ) {
       console.warn(
-        `Retrying ${url} due to ${error.message}. Attempts left: ${retries}`
+        `Retrying ${url} due to ${error.message}. Attempts left: ${retries}`,
       );
       await new Promise((res) => setTimeout(res, 1000)); // Wait 1s
       return fetchWithRetry(url, options, retries - 1);
@@ -41,7 +41,7 @@ const fetchUserSubmissions = async (handle) => {
   try {
     const response = await fetchWithRetry(
       `https://codeforces.com/api/user.status?handle=${handle}`,
-      { timeout: 10000 } // Reduced to 10s
+      { timeout: 10000 }, // Reduced to 10s
     );
 
     if (response.data.status !== "OK") {
@@ -56,7 +56,7 @@ const fetchUserSubmissions = async (handle) => {
         cacheKey,
         JSON.stringify(submissions),
         "EX",
-        60 * 60 // 1 hour
+        60 * 60, // 1 hour
       );
     } catch (redisError) {
       console.error("Redis write failed:", redisError.message);
@@ -83,7 +83,7 @@ const getCachedProblemSet = async () => {
   } catch (redisError) {
     console.error(
       "getCachedProblemSet: Redis read failed:",
-      redisError.message
+      redisError.message,
     );
   }
 
@@ -92,7 +92,7 @@ const getCachedProblemSet = async () => {
   try {
     const response = await fetchWithRetry(
       "https://codeforces.com/api/problemset.problems",
-      { timeout: 15000 } // Reduced to 15s
+      { timeout: 15000 }, // Reduced to 15s
     );
 
     if (response.data.status !== "OK") {
@@ -108,7 +108,7 @@ const getCachedProblemSet = async () => {
     } catch (redisError) {
       console.error(
         "getCachedProblemSet: Redis write failed:",
-        redisError.message
+        redisError.message,
       );
     }
 
@@ -141,14 +141,14 @@ const getRecommendations = async (handle) => {
       fetchUserSubmissions(handle).catch((e) => {
         console.error(
           "getRecommendations: fetchUserSubmissions failed",
-          e.message
+          e.message,
         );
         return [];
       }),
       getCachedProblemSet().catch((e) => {
         console.error(
           "getRecommendations: getCachedProblemSet failed",
-          e.message
+          e.message,
         );
         return [];
       }),
@@ -162,14 +162,14 @@ const getRecommendations = async (handle) => {
 
     //filter accepted submission
     const acceptedSubmissions = submissions.filter(
-      (sub) => sub.verdict === "OK"
+      (sub) => sub.verdict === "OK",
     );
 
     // create set of solved problem ID (e.g. "4A", "150B")
     const solvedSet = new Set(
       acceptedSubmissions.map(
-        (sub) => `${sub.problem.contestId}${sub.problem.index}`
-      )
+        (sub) => `${sub.problem.contestId}${sub.problem.index}`,
+      ),
     );
 
     if (!allProblems || allProblems.length === 0) {
@@ -288,7 +288,7 @@ const calculateCFStats = async (handle) => {
     } catch (redisError) {
       console.error(
         "calculateCFStats: Redis write failed:",
-        redisError.message
+        redisError.message,
       );
     }
     return result;
@@ -299,18 +299,35 @@ const calculateCFStats = async (handle) => {
 };
 
 const fetchCFHistory = async (handle) => {
+  const cacheKey = `cf:history:${handle}`;
+
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+  } catch (cacheError) {
+    console.error("fetchCFHistory cache read failed:", cacheError.message);
+  }
+
   try {
     const response = await fetchWithRetry(
       `https://codeforces.com/api/user.rating?handle=${handle}`,
-      { timeout: 15000 }
+      { timeout: 15000 },
     );
     if (response.data.status !== "OK") return [];
 
-    return response.data.result.map((r) => ({
+    const history = response.data.result.map((r) => ({
       date: new Date(r.ratingUpdateTimeSeconds * 1000).toISOString(),
       rating: r.newRating,
       contestName: r.contestName,
     }));
+
+    try {
+      await redis.set(cacheKey, JSON.stringify(history), "EX", 3600);
+    } catch (cacheError) {
+      console.error("fetchCFHistory cache write failed:", cacheError.message);
+    }
+
+    return history;
   } catch (error) {
     console.error("fetchCFHistory Error:", error.message);
     return [];
