@@ -6,7 +6,7 @@ Coder's Compass is a full-stack competitive programming companion that unifies s
 
 Live Demo: https://coders-compass.vercel.app
 
-![Coder's Compass Dashboard](./screenshots/dashboard.png)
+![Coder's Compass Dashboard](./screenshots/dashboard2.png)
 
 ## Key Features
 
