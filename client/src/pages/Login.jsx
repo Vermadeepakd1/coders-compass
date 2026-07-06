@@ -60,61 +60,109 @@ const Login = () => {
     }
 
     return (
-        <div className="min-h-screen bg-[#0c1618] flex items-center justify-center p-4 relative overflow-hidden">
-            {/* Background Decor */}
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-[#4ecdc4] rounded-full mix-blend-screen filter blur-[128px] opacity-10"></div>
-                <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-[#0075a2] rounded-full mix-blend-screen filter blur-[128px] opacity-10"></div>
-            </div>
+        <div className="min-h-screen bg-brand-bg flex font-mono text-xs">
+            {/* Left Panel: Product Promise & Telemetry Simulation (Hidden on small screens) */}
+            <div className="hidden lg:flex lg:w-7/12 bg-zinc-950 border-r border-brand-border-subtle p-12 flex-col justify-between relative overflow-hidden select-none">
+                {/* Background Grid Pattern */}
+                <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{
+                    backgroundImage: `radial-gradient(circle, #f4f4f5 1px, transparent 1px)`,
+                    backgroundSize: '16px 16px'
+                }}></div>
 
-            <div className="w-full max-w-md z-10">
-                <div className="text-center mb-8">
-                    <div className="flex items-center justify-center gap-2 mb-2">
-                        <Cpu size={32} className="text-[#4ecdc4]" />
-                        <h1 className="text-3xl font-bold text-white tracking-tight">Coder's Compass</h1>
+                <div className="z-10 flex items-center gap-2">
+                    <div className="p-1 rounded-sm border border-zinc-800 bg-zinc-900">
+                        <Cpu size={14} className="text-zinc-300" />
                     </div>
-                    <p className="text-gray-400">Navigate your path to mastery.</p>
+                    <span className="text-sm font-bold text-zinc-100 tracking-tight font-geist lowercase">coder's compass</span>
                 </div>
 
-                <div className="bg-[#111f22] border border-gray-800/50 rounded-xl p-6 shadow-xl backdrop-blur-sm space-y-6 border-t-4 border-t-[#4ecdc4]">
+                <div className="z-10 max-w-lg space-y-6">
+                    <div className="space-y-3">
+                        <h2 className="text-3xl font-light text-white font-geist tracking-tight leading-tight">
+                            One telemetry workspace for your <span className="font-semibold text-streak">coding growth</span>.
+                        </h2>
+                        <p className="text-zinc-500 font-sans text-sm leading-relaxed">
+                            Aggregate metrics from LeetCode, Codeforces, and CodeChef. Trace your rating trajectories, leverage AI diagnostics, and compete with peers on a unified matrix.
+                        </p>
+                    </div>
 
-                    {/* Cold Start Warning Banner */}
-                    <div className="mb-6 bg-blue-900/20 border-l-4 border-blue-500 p-4 rounded-r shadow-sm">
-                        <div className="flex">
-                            <div className="shrink-0">
-                                <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                                </svg>
+                    {/* Real dashboard preview cards */}
+                    <div className="space-y-4">
+                        <div className="border border-zinc-900 bg-zinc-900/20 rounded p-4 space-y-3">
+                            <div className="flex items-center justify-between border-b border-zinc-900 pb-2">
+                                <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider">Consistency Tracker</span>
+                                <span className="text-streak font-bold flex items-center gap-1">🔥 12 days</span>
                             </div>
-                            <div className="ml-3">
-                                <p className="text-sm text-blue-400 font-bold">⚠️ Server Cold Start</p>
-                                <p className="text-xs text-blue-300 mt-1">
-                                    Because this app runs on a free tier, the backend sleeps when inactive.
-                                    <span className="font-bold"> The first login may take up to 60 seconds.</span> Please be patient!
-                                </p>
+                            <div className="grid grid-cols-7 gap-1">
+                                {[1, 3, 0, 5, 8, 3, 5, 0, 1, 8, 5, 3, 0, 1].map((cnt, idx) => {
+                                    const colors = {
+                                        0: "bg-zinc-900",
+                                        1: "bg-amber-950/70",
+                                        3: "bg-amber-800/70",
+                                        5: "bg-orange-700/80",
+                                        8: "bg-streak"
+                                    };
+                                    return <div key={idx} className={`h-3 rounded-sm ${colors[cnt]}`} />;
+                                })}
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 text-[10px]">
+                            <div className="border border-zinc-900 bg-zinc-900/20 p-3 rounded">
+                                <span className="text-zinc-500 uppercase">Codeforces</span>
+                                <div className="text-sm font-bold text-cf mt-0.5">2,142 Rating</div>
+                                <span className="text-growth font-mono mt-1 block">+45 in Div. 2</span>
+                            </div>
+                            <div className="border border-zinc-900 bg-zinc-900/20 p-3 rounded">
+                                <span className="text-zinc-500 uppercase">LeetCode</span>
+                                <div className="text-sm font-bold text-lc mt-0.5">2,845 Rating</div>
+                                <span className="text-growth font-mono mt-1 block">Top 0.8% Guardian</span>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <div className="flex gap-4 border-b border-gray-800 pb-4">
-                        <button
-                            className="flex-1 pb-2 text-sm font-medium transition-colors text-[#4ecdc4] border-b-2 border-[#4ecdc4]"
-                        >
-                            Login
-                        </button>
-                        <button
-                            onClick={() => navigate('/register')}
-                            className="flex-1 pb-2 text-sm font-medium transition-colors text-gray-500 hover:text-gray-300"
-                        >
-                            Register
-                        </button>
+                <div className="z-10 text-[10px] text-zinc-600">
+                    &copy; {new Date().getFullYear()} Coder's Compass. Designed for competitive programmers.
+                </div>
+            </div>
+
+            {/* Right Panel: Clean form */}
+            <div className="w-full lg:w-5/12 flex items-center justify-center p-8 bg-brand-bg">
+                <div className="w-full max-w-sm space-y-6">
+                    {/* Wordmark (visible on mobile only) */}
+                    <div className="lg:hidden">
+                        <div className="flex items-center gap-2 mb-1">
+                            <Cpu size={16} className="text-zinc-400" />
+                            <span className="text-zinc-200 font-semibold text-sm tracking-wider uppercase">Coder's Compass</span>
+                        </div>
+                        <p className="text-[10px] text-zinc-600 uppercase tracking-wider">Sign in to your workspace</p>
                     </div>
 
-                    <form className="space-y-4" onSubmit={handleSubmit}>
-                        <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider" htmlFor="email">Email</label>
-                            <div className="relative group">
-                                <MessageSquare size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-[#4ecdc4] transition-colors" />
+                    <div className="border border-brand-border bg-brand-surface rounded p-6 space-y-5">
+                        {/* Cold Start Notice */}
+                        <div className="bg-zinc-950 border border-zinc-900 rounded p-3 text-[10px]">
+                            <p className="text-zinc-300 font-bold uppercase tracking-wider mb-1">Server Cold Start</p>
+                            <p className="text-zinc-500 leading-relaxed font-sans">
+                                Backend runs on a free tier and sleeps when idle.
+                                <span className="text-zinc-300 font-semibold"> First request may take up to 60s.</span>
+                            </p>
+                        </div>
+
+                        {/* Tab Row */}
+                        <div className="flex gap-3 border-b border-zinc-800 pb-3 text-[10px] uppercase tracking-wider font-bold">
+                            <button className="text-zinc-200 border-b-2 border-zinc-200 pb-1">Login</button>
+                            <button
+                                onClick={() => navigate('/register')}
+                                className="text-zinc-600 hover:text-zinc-400 pb-1 transition-colors"
+                            >
+                                Register
+                            </button>
+                        </div>
+
+                        <form className="space-y-4" onSubmit={handleSubmit}>
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block" htmlFor="email">Email</label>
                                 <input
                                     id="email"
                                     name="email"
@@ -123,16 +171,13 @@ const Login = () => {
                                     type="email"
                                     required
                                     autoComplete="email"
-                                    placeholder="you@example.com"
-                                    className="w-full bg-[#111f22] border border-gray-700 rounded-lg py-3 pl-10 pr-4 text-gray-200 focus:outline-none focus:border-[#4ecdc4] focus:ring-1 focus:ring-[#4ecdc4] transition-all placeholder-gray-600"
+                                    placeholder="name@example.com"
+                                    className="input-developer w-full"
                                 />
                             </div>
-                        </div>
 
-                        <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider" htmlFor="password">Password</label>
-                            <div className="relative group">
-                                <ShieldAlert size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-[#4ecdc4] transition-colors" />
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block" htmlFor="password">Password</label>
                                 <input
                                     id="password"
                                     name="password"
@@ -142,30 +187,31 @@ const Login = () => {
                                     required
                                     autoComplete="current-password"
                                     placeholder="••••••••"
-                                    className="w-full bg-[#111f22] border border-gray-700 rounded-lg py-3 pl-10 pr-4 text-gray-200 focus:outline-none focus:border-[#4ecdc4] focus:ring-1 focus:ring-[#4ecdc4] transition-all placeholder-gray-600"
+                                    className="input-developer w-full"
                                 />
                             </div>
-                        </div>
 
-                        {error && (
-                            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-                                {error}
-                            </div>
-                        )}
+                            {error && (
+                                <div className="p-2.5 border border-brand-danger/30 bg-brand-danger/5 text-brand-danger text-[10px] rounded font-sans">
+                                    {error}
+                                </div>
+                            )}
 
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="w-full bg-[#4ecdc4] text-[#0c1618] hover:opacity-90 shadow-[0_0_15px_-3px_rgba(78,205,196,0.3)] px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-4"
-                        >
-                            {isLoading ? 'Logging in...' : 'Access Dashboard'}
-                            {!isLoading && <ChevronRight size={16} />}
-                        </button>
-                    </form>
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className="btn-primary w-full flex items-center justify-center gap-1.5 mt-2"
+                            >
+                                {isLoading ? 'Signing in...' : 'Access Dashboard'}
+                                {!isLoading && <ChevronRight size={12} />}
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
     )
 }
 
-export default Login
+export default Login;
+

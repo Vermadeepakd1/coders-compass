@@ -115,15 +115,15 @@ const AiCoach = () => {
         document.removeEventListener('mouseup', stopResize);
     };
 
-    // 1. Floating Button (When Closed)
+    // 1. Collapsed Trigger Button
     if (!isOpen) {
         return (
             <button
                 onClick={toggleChat}
-                className="fixed bottom-6 right-6 w-14 h-14 bg-[#4ecdc4] hover:bg-[#3dbdb4] text-[#0c1618] rounded-full shadow-[0_0_20px_rgba(78,205,196,0.4)] flex items-center justify-center transition-all duration-300 z-50 group"
+                className="fixed bottom-4 right-4 bg-zinc-900 border border-brand-border text-zinc-200 hover:bg-zinc-800 font-mono text-[10px] uppercase tracking-wider px-3.5 py-2 rounded-sm shadow-lg z-50 flex items-center gap-1.5"
             >
-                <Bot size={28} className="group-hover:scale-110 transition-transform" />
-                <span className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full animate-pulse"></span>
+                <Bot size={13} />
+                <span>Coach Chat</span>
             </button>
         );
     }
@@ -131,87 +131,69 @@ const AiCoach = () => {
     // 2. Chat Window
     return (
         <div
-            className={`fixed bottom-6 right-6 bg-[#111f22] border border-gray-800 rounded-2xl shadow-2xl z-50 flex flex-col ${isResizing ? '' : 'transition-all duration-300'}`}
+            className={`fixed bottom-4 right-4 bg-brand-surface border border-brand-border rounded-sm shadow-xl z-50 flex flex-col font-mono text-xs text-zinc-400`}
             style={{
                 width: dimensions.width,
-                height: isMinimized ? 60 : dimensions.height
+                height: isMinimized ? 36 : dimensions.height
             }}
         >
-            {/* Resize Handle (Top-Left) - Only visible when not minimized */}
-            {!isMinimized && (
-                <div
-                    className="absolute -top-2 -left-2 w-6 h-6 cursor-nw-resize z-50 flex items-center justify-center group"
-                    onMouseDown={startResize}
-                >
-                    <div className="w-3 h-3 border-t-2 border-l-2 border-gray-600 group-hover:border-[#4ecdc4] rounded-tl transition-colors"></div>
-                </div>
-            )}
-
             {/* Header */}
-            <div className="p-4 bg-[#0c1618] border-b border-gray-800 rounded-t-2xl flex justify-between items-center cursor-pointer select-none" onClick={toggleMinimize}>
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#4ecdc4]/20 flex items-center justify-center text-[#4ecdc4]">
-                        <Bot size={18} />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-white text-sm">AI Coach</h3>
-                        <p className="text-xs text-[#4ecdc4] flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#4ecdc4] animate-pulse"></span>
-                            Online
-                        </p>
-                    </div>
+            <div className="p-2.5 bg-zinc-950 border-b border-brand-border flex justify-between items-center cursor-pointer select-none text-[10px] uppercase tracking-wider" onClick={toggleMinimize}>
+                <div className="flex items-center gap-2">
+                    <Bot size={13} className="text-zinc-400" />
+                    <span className="text-zinc-200 font-semibold">AI Coach console</span>
                 </div>
-                <div className="flex gap-2 text-gray-400">
-                    <button onClick={(e) => { e.stopPropagation(); toggleMinimize(); }} className="hover:text-white p-1">
-                        {isMinimized ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
+                <div className="flex gap-2 text-zinc-500">
+                    <button onClick={(e) => { e.stopPropagation(); toggleMinimize(); }} className="hover:text-zinc-300">
+                        {isMinimized ? "[max]" : "[min]"}
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); toggleChat(); }} className="hover:text-red-400 p-1">
-                        <X size={18} />
+                    <button onClick={(e) => { e.stopPropagation(); toggleChat(); }} className="hover:text-brand-danger">
+                        [esc]
                     </button>
                 </div>
             </div>
 
-            {/* Content (Hidden if minimized) */}
+            {/* Content */}
             {!isMinimized && (
                 <>
-                    {/* Setup Mode */}
                     {!activeProblem ? (
-                        <div className="flex-1 p-6 flex flex-col justify-center items-center text-center">
-                            <Bot size={48} className="text-gray-700 mb-4" />
-                            <h4 className="text-white font-medium mb-2">Start a Session</h4>
-                            <p className="text-gray-400 text-sm mb-6">Paste a problem link to get context-aware help.</p>
-                            <form onSubmit={startSession} className="w-full space-y-3">
+                        <div className="flex-1 p-6 flex flex-col justify-center items-center text-center space-y-4">
+                            <Bot size={24} className="text-zinc-600" />
+                            <div className="space-y-1">
+                                <h4 className="text-zinc-200 uppercase font-semibold text-[10px] tracking-wider">Initialize Session</h4>
+                                <p className="text-[10px] text-zinc-500 font-sans leading-relaxed max-w-[240px]">
+                                    Provide a Codeforces or LeetCode problem link to start contextual reviews.
+                                </p>
+                            </div>
+                            <form onSubmit={startSession} className="w-full space-y-2">
                                 <input
                                     type="text"
-                                    placeholder="Problem Link..."
-                                    className="w-full bg-[#0c1618] border border-gray-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-[#4ecdc4] transition-colors"
+                                    placeholder="Problem URL..."
+                                    className="w-full bg-brand-bg border border-zinc-800 text-zinc-200 px-2 py-1.5 rounded-sm text-xs focus:outline-none focus:border-zinc-500 font-mono"
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
                                 />
-                                <button type="submit" className="w-full bg-[#4ecdc4] text-[#0c1618] font-bold py-2.5 rounded-lg hover:opacity-90 transition-opacity">
-                                    Start Coaching
+                                <button type="submit" className="btn-primary w-full text-[10px]">
+                                    Connect
                                 </button>
                             </form>
                         </div>
                     ) : (
-                        /* Chat Mode */
                         <>
-                            <div className="bg-[#0c1618]/50 px-4 py-2 border-b border-gray-800 flex justify-between items-center">
-                                <span className="text-xs text-gray-400 truncate max-w-[200px]">{activeProblem}</span>
-                                <button onClick={resetSession} className="text-xs text-red-400 hover:underline">End Session</button>
+                            <div className="bg-zinc-950/80 px-3 py-1.5 border-b border-brand-border flex justify-between items-center text-[9px] uppercase text-zinc-500">
+                                <span className="truncate max-w-[200px] lowercase">{activeProblem}</span>
+                                <button onClick={resetSession} className="text-brand-danger hover:underline font-bold">End Session</button>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#0c1618] scrollbar-thin scrollbar-thumb-gray-800">
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-brand-bg">
                                 {messages.map((msg, index) => (
-                                    <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                        <div className={`max-w-[85%] p-3 rounded-2xl text-sm ${msg.role === 'user'
-                                            ? 'bg-[#4ecdc4] text-[#0c1618] rounded-br-none'
-                                            : msg.role === 'error'
-                                                ? 'bg-red-900/20 text-red-400 border border-red-900/50'
-                                                : 'bg-[#111f22] text-gray-200 border border-gray-800 rounded-bl-none'
-                                            }`}>
+                                    <div key={index} className="space-y-1">
+                                        <div className="text-[9px] text-zinc-500 uppercase tracking-wider font-bold">
+                                            {msg.role === 'user' ? '// USER' : '// COACH'}
+                                        </div>
+                                        <div className={`pl-2 border-l border-zinc-700 text-zinc-300 font-sans text-xs leading-relaxed whitespace-pre-wrap`}>
                                             {msg.role === 'ai' ? (
-                                                <div className="prose prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-[#0c1618] prose-pre:border prose-pre:border-gray-800 whitespace-pre-wrap">
+                                                <div className="prose prose-invert prose-xs max-w-none text-zinc-300">
                                                     <ReactMarkdown remarkPlugins={[remarkMath, remarkBreaks, remarkGfm]} rehypePlugins={[rehypeKatex]}>{msg.text}</ReactMarkdown>
                                                 </div>
                                             ) : (
@@ -221,12 +203,8 @@ const AiCoach = () => {
                                     </div>
                                 ))}
                                 {loading && (
-                                    <div className="flex justify-start">
-                                        <div className="bg-[#111f22] border border-gray-800 px-4 py-2 rounded-full rounded-bl-none flex gap-1">
-                                            <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></span>
-                                            <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-75"></span>
-                                            <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-150"></span>
-                                        </div>
+                                    <div className="text-zinc-600 animate-pulse text-[10px] uppercase">
+                                        [Computing response...]
                                     </div>
                                 )}
                                 <div ref={messagesEndRef} />
@@ -234,12 +212,12 @@ const AiCoach = () => {
 
                             {/* Suggestion Chips */}
                             {!loading && messages.length > 0 && (
-                                <div className="px-4 py-2 flex gap-2 overflow-x-auto thin-scrollbar">
+                                <div className="px-3 py-2 flex gap-1.5 overflow-x-auto bg-zinc-950 border-t border-brand-border">
                                     {SUGGESTIONS.map((text) => (
                                         <button
                                             key={text}
                                             onClick={() => sendMessage(null, text)}
-                                            className="text-xs bg-[#111f22] text-[#4ecdc4] px-3 py-1 rounded-full hover:bg-[#4ecdc4]/10 transition border border-[#4ecdc4]/30 whitespace-nowrap"
+                                            className="text-[9px] text-zinc-400 border border-zinc-800 px-2 py-0.5 rounded-sm bg-zinc-900 hover:text-zinc-200 hover:border-zinc-700 whitespace-nowrap"
                                         >
                                             {text}
                                         </button>
@@ -247,11 +225,11 @@ const AiCoach = () => {
                                 </div>
                             )}
 
-                            <form onSubmit={sendMessage} className="p-3 bg-[#111f22] border-t border-gray-800 flex gap-2">
+                            <form onSubmit={sendMessage} className="p-2 bg-brand-surface border-t border-brand-border flex gap-2">
                                 <input
                                     type="text"
-                                    placeholder="Type your question..."
-                                    className="flex-1 bg-[#0c1618] border border-gray-700 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:border-[#4ecdc4]"
+                                    placeholder="Enter prompt..."
+                                    className="flex-1 bg-brand-bg border border-zinc-800 rounded-sm px-2.5 py-1.5 text-zinc-100 text-xs focus:outline-none focus:border-zinc-500 font-sans"
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
                                     disabled={loading}
@@ -259,9 +237,9 @@ const AiCoach = () => {
                                 <button
                                     type="submit"
                                     disabled={loading || !input.trim()}
-                                    className="bg-[#4ecdc4] p-2 rounded-lg text-[#0c1618] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                    className="bg-zinc-100 text-zinc-950 hover:bg-zinc-200 px-3 py-1.5 rounded-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    <Send size={18} />
+                                    <Send size={12} />
                                 </button>
                             </form>
                         </>
@@ -273,3 +251,4 @@ const AiCoach = () => {
 };
 
 export default AiCoach;
+

@@ -1,87 +1,309 @@
 @import "tailwindcss";
 
+@theme {
+  /* ---------- Surface ---------- */
+  --color-brand-bg: #09090b;
+  --color-brand-surface: #111113;
+  --color-brand-surface-raised: #18181b;
+  --color-brand-border: #27272a;
+  --color-brand-border-subtle: #1c1c1e;
+
+  /* ---------- Platform Identity ---------- */
+  --color-lc: #f97316;          /* LeetCode orange  */
+  --color-cf: #3b82f6;          /* Codeforces blue  */
+  --color-cc: #a78bfa;          /* CodeChef violet  */
+
+  /* ---------- Semantic Accents ---------- */
+  --color-streak:      #f97316; /* fire / urgency   */
+  --color-achievement: #eab308; /* gold / milestone */
+  --color-growth:      #10b981; /* emerald / up     */
+  --color-loss:        #ef4444; /* red / down       */
+  --color-ai:          #06b6d4; /* cyan / AI        */
+  --color-contest:     #8b5cf6; /* purple / event   */
+
+  /* ---------- Semantic utility aliases ---------- */
+  --color-brand-primary:   #3b82f6;
+  --color-brand-secondary: #6366f1;
+  --color-brand-success:   #10b981;
+  --color-brand-warning:   #f59e0b;
+  --color-brand-danger:    #ef4444;
+
+  /* ---------- Typography ---------- */
+  --font-geist: Geist, ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+}
+
+/* ====================================================
+   BASE
+   ==================================================== */
+*, *::before, *::after { box-sizing: border-box; }
+
 body {
-  background-color: #0c1618;
-  color: #f7f9f9;
+  background-color: #09090b;
+  color: #e4e4e7;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom Scrollbar for the whole app */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #1f2937; 
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #374151; 
+/* ====================================================
+   KEYFRAMES
+   ==================================================== */
+
+/* Breathing glow for active streak numbers */
+@keyframes streak-pulse {
+  0%, 100% { text-shadow: 0 0 0px #f97316; opacity: 1; }
+  50%       { text-shadow: 0 0 18px #f9731666; opacity: 0.85; }
 }
 
-/* Specific thin scrollbar for horizontal lists */
-.thin-scrollbar::-webkit-scrollbar {
-  height: 8px;
-}
-.thin-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.thin-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(78, 205, 196, 0.2);
-  border-radius: 20px;
-}
-.thin-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(78, 205, 196, 0.5);
+/* Gold shimmer for milestones */
+@keyframes gold-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
 }
 
-/* React Calendar Heatmap Styles */
+/* Subtle float for hero numbers */
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Slide-in from bottom for notifications / banners */
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Delta pulse (green up / red down indicators) */
+@keyframes delta-flash {
+  0%   { opacity: 0.6; }
+  60%  { opacity: 1; }
+  100% { opacity: 0.85; }
+}
+
+/* Ticker: for countdown seconds */
+@keyframes tick {
+  0%   { transform: scaleY(1.1); }
+  50%  { transform: scaleY(1); }
+  100% { transform: scaleY(1.1); }
+}
+
+/* ====================================================
+   UTILITY CLASSES
+   ==================================================== */
+
+/* Streak number — large, orange, breathing */
+.streak-number {
+  font-family: var(--font-mono);
+  font-size: 3rem;
+  font-weight: 700;
+  color: #f97316;
+  line-height: 1;
+  animation: streak-pulse 3s ease-in-out infinite, count-up 0.5s ease-out;
+  letter-spacing: -0.03em;
+}
+
+.streak-number-sm {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: #f97316;
+  animation: streak-pulse 3s ease-in-out infinite;
+}
+
+/* Gold milestone text */
+.achievement-text {
+  background: linear-gradient(90deg, #ca8a04, #eab308, #fbbf24, #eab308, #ca8a04);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gold-shimmer 3s linear infinite;
+  font-weight: 700;
+}
+
+/* Delta indicators */
+.delta-up   { color: #10b981; font-weight: 600; }
+.delta-down { color: #ef4444; font-weight: 600; }
+.delta-neutral { color: #71717a; }
+
+/* Platform badges / text accents */
+.platform-lc { color: #f97316; }
+.platform-cf { color: #3b82f6; }
+.platform-cc { color: #a78bfa; }
+
+.platform-dot-lc { background-color: #f97316; }
+.platform-dot-cf { background-color: #3b82f6; }
+.platform-dot-cc { background-color: #a78bfa; }
+
+.platform-border-lc { border-left-color: #f97316 !important; }
+.platform-border-cf { border-left-color: #3b82f6 !important; }
+.platform-border-cc { border-left-color: #a78bfa !important; }
+
+/* Contest / event accent */
+.contest-accent { color: #8b5cf6; }
+.ai-accent      { color: #06b6d4; }
+
+/* Animated entry for hero elements */
+.animate-entry { animation: count-up 0.4s ease-out both; }
+.animate-entry-delay-1 { animation: count-up 0.4s 0.1s ease-out both; }
+.animate-entry-delay-2 { animation: count-up 0.4s 0.2s ease-out both; }
+.animate-entry-delay-3 { animation: count-up 0.4s 0.3s ease-out both; }
+
+/* Slide-up notifications */
+.animate-slide-up { animation: slide-up 0.3s ease-out both; }
+
+/* Delta flash */
+.animate-delta { animation: delta-flash 0.6s ease-out both; }
+
+/* ====================================================
+   COMPONENT CLASSES
+   ==================================================== */
+
+/* Base card — no border, clean surface */
+.card {
+  background-color: #111113;
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+/* Bordered variant */
+.card-bordered {
+  background-color: #111113;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+/* Platform-accented card (left border) */
+.card-platform {
+  background-color: #111113;
+  border: 1px solid #27272a;
+  border-left-width: 3px;
+  border-radius: 8px;
+  padding: 1.25rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+
+.card-platform:hover {
+  border-color: #3f3f46;
+  background-color: #141416;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.5);
+}
+
+/* Hero band — large full-width section */
+.hero-band {
+  background-color: #111113;
+  border-bottom: 1px solid #1c1c1e;
+  padding: 2rem 0;
+}
+
+/* ====================================================
+   BUTTONS
+   ==================================================== */
+.btn-primary {
+  background-color: #f4f4f5;
+  color: #09090b;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  border: none;
+  transition: background-color 120ms ease, transform 80ms ease;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-primary:hover  { background-color: #e4e4e7; }
+.btn-primary:active { transform: scale(0.98); }
+
+.btn-secondary {
+  background-color: transparent;
+  color: #a1a1aa;
+  border: 1px solid #27272a;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  transition: all 120ms ease;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-secondary:hover { background-color: #18181b; border-color: #3f3f46; color: #f4f4f5; }
+
+.btn-accent {
+  background-color: #f97316;
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  border: none;
+  transition: background-color 120ms ease;
+  cursor: pointer;
+}
+.btn-accent:hover { background-color: #ea6c0a; }
+
+/* ====================================================
+   INPUTS
+   ==================================================== */
+.input-developer {
+  background-color: #09090b;
+  border: 1px solid #27272a;
+  color: #f4f4f5;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 5px;
+  transition: border-color 150ms ease;
+  outline: none;
+}
+.input-developer::placeholder { color: #52525b; }
+.input-developer:focus { border-color: #52525b; }
+
+/* ====================================================
+   SCROLLBAR
+   ==================================================== */
+::-webkit-scrollbar        { width: 5px; height: 5px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: #27272a; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
+/* ====================================================
+   HEATMAP — warm orange progression
+   ==================================================== */
 .react-calendar-heatmap text {
-  font-size: 10px;
-  fill: #9ca3af; /* Gray-400 - Lighter text for better readability */
+  font-size: 8px;
+  fill: #52525b;
+  font-family: var(--font-mono);
 }
-
-/* Move weekday labels (Mon, Wed, Fri) to the left to create a gap */
 .react-calendar-heatmap .react-calendar-heatmap-weekday-labels {
-  transform: translateX(-8px);
+  transform: translate(2px, 12px);
 }
-
 .react-calendar-heatmap rect {
-  rx: 3px;
-  ry: 3px;
+  rx: 2px;
+  ry: 2px;
   shape-rendering: geometricPrecision;
 }
 
-/* Use !important to override library default styles */
-.react-calendar-heatmap .color-empty {
-  fill: #1f2937 !important; /* Gray-800: Subtle dark gray, distinct from background */
-}
-
-.react-calendar-heatmap .color-scale-1 { fill: #115e59 !important; } /* Teal-800 */
-.react-calendar-heatmap .color-scale-2 { fill: #0d9488 !important; } /* Teal-600 */
-.react-calendar-heatmap .color-scale-3 { fill: #2dd4bf !important; } /* Teal-400 */
-.react-calendar-heatmap .color-scale-4 { fill: #4ecdc4 !important; } /* Neon Accent */
+/* Scale: zinc → amber → orange (warm progression) */
+.react-calendar-heatmap .color-empty   { fill: #18181b !important; }
+.react-calendar-heatmap .color-scale-1 { fill: #451a03 !important; }
+.react-calendar-heatmap .color-scale-2 { fill: #92400e !important; }
+.react-calendar-heatmap .color-scale-3 { fill: #c2410c !important; }
+.react-calendar-heatmap .color-scale-4 { fill: #f97316 !important; }
 
 .react-calendar-heatmap rect:hover {
-  stroke: #f7f9f9;
-  stroke-width: 1px;
-}
-
-/* Heatmap Labels */
-.react-calendar-heatmap text {
-  font-size: 10px !important;
-  fill: #9ca3af !important; /* Gray-400 */
-}
-
-.react-calendar-heatmap {
-  overflow: visible !important; /* Prevent clipping of labels */
-}
-
-.react-calendar-heatmap .react-calendar-heatmap-weekday-labels {
-  transform: translate(4px, 12px); /* Adjust day labels position */
-}
-
-.react-calendar-heatmap .react-calendar-heatmap-month-labels {
-  transform: translate(0, -4px); /* Lift months up slightly */
+  stroke: #f97316;
+  stroke-width: 0.8px;
 }

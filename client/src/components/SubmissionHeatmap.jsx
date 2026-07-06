@@ -2,39 +2,30 @@ import { useMemo } from 'react';
 import CalendarHeatmap from 'react-calendar-heatmap';
 import 'react-calendar-heatmap/dist/styles.css';
 import { Tooltip } from 'react-tooltip';
+import { Flame, Zap, CalendarDays } from 'lucide-react';
 
-const SubmissionHeatmap = ({ data }) => {
+const SubmissionHeatmap = ({ data, streak = 0 }) => {
     const today = new Date();
     const lastYear = new Date();
     lastYear.setFullYear(today.getFullYear() - 1);
 
-    // Calculate stats
     const stats = useMemo(() => {
         let totalSubmissions = 0;
         let activeDays = 0;
         let maxStreak = 0;
         let currentStreak = 0;
 
-        // Sort data to ensure chronological order
-        const sortedData = [...(data || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
-
-        sortedData.forEach((day, index) => {
+        const sorted = [...(data || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
+        sorted.forEach((day, i) => {
             totalSubmissions += day.count;
             if (day.count > 0) activeDays++;
-
-            if (index === 0) {
+            if (i === 0) {
                 currentStreak = 1;
             } else {
-                const prevDate = new Date(sortedData[index - 1].date);
-                const currDate = new Date(day.date);
-                const diffTime = Math.abs(currDate - prevDate);
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                if (diffDays === 1) {
-                    currentStreak++;
-                } else {
-                    currentStreak = 1;
-                }
+                const prev = new Date(sorted[i - 1].date);
+                const curr = new Date(day.date);
+                const diff = Math.ceil(Math.abs(curr - prev) / 86400000);
+                currentStreak = diff === 1 ? currentStreak + 1 : 1;
             }
             if (currentStreak > maxStreak) maxStreak = currentStreak;
         });
@@ -43,53 +34,88 @@ const SubmissionHeatmap = ({ data }) => {
     }, [data]);
 
     return (
-        <div className="bg-[#111f22] p-6 rounded-xl shadow-lg border border-gray-800 mt-6">
-            {/* Header Stats */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-                <div className="text-white mb-4 md:mb-0">
-                    <span className="text-xl font-bold">{stats.totalSubmissions}</span>
-                    <span className="text-gray-400 ml-2">submissions in the past one year</span>
+        <div className="card-bordered font-mono text-xs">
+            {/* Header — streak is the primary focus */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+                <div>
+                    <h2 className="text-base font-semibold text-zinc-200 font-geist">Submission Activity</h2>
+                    <p className="text-[10px] text-zinc-450 uppercase tracking-widest mt-0.5">
+                        last 365 days
+                    </p>
                 </div>
 
-                <div className="flex gap-6 text-sm text-gray-400">
-                    <div className="flex flex-col items-end">
-                        <span className="text-xs text-gray-500">Total active days</span>
-                        <span className="font-semibold text-white">{stats.activeDays}</span>
+                {/* Stats row — streak center-stage */}
+                <div className="flex items-center gap-5">
+                    {streak > 0 && (
+                        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-streak/25 bg-streak/5">
+                            <Flame size={11} className="text-streak" />
+                            <span className="text-streak font-bold text-sm">{streak}</span>
+                            <span className="text-[9px] text-zinc-450 uppercase tracking-widest">day streak</span>
+                        </div>
+                    )}
+
+                    <div className="flex items-center gap-1 text-[10px]">
+                        <CalendarDays size={11} className="text-zinc-600" />
+                        <span className="text-zinc-450">{stats.activeDays}</span>
+                        <span className="text-zinc-500 uppercase tracking-widest"> active</span>
                     </div>
-                    <div className="flex flex-col items-end">
-                        <span className="text-xs text-gray-500">Max streak</span>
-                        <span className="font-semibold text-white">{stats.maxStreak}</span>
+
+                    <div className="flex items-center gap-1 text-[10px]">
+                        <Zap size={11} className="text-zinc-600" />
+                        <span className="text-zinc-500">{stats.totalSubmissions}</span>
+                        <span className="text-zinc-700 uppercase tracking-widest"> total</span>
+                    </div>
+
+                    <div className="text-[10px] hidden sm:block">
+                        <span className="text-zinc-700 uppercase tracking-widest">best </span>
+                        <span className="text-zinc-400">{stats.maxStreak}d</span>
                     </div>
                 </div>
             </div>
 
-            <CalendarHeatmap
-                startDate={lastYear}
-                endDate={today}
-                values={data}
-                gutterSize={4}
-                showWeekdayLabels={true}
-                classForValue={(val) => {
-                    if (!val) return 'color-empty';
-                    return `color-scale-${Math.min(val.count, 4)}`; // Scale 1-4
-                }}
-                tooltipDataAttrs={val => ({
-                    'data-tooltip-id': 'heatmap-tooltip',
-                    'data-tooltip-content': val.date ? `${val.date}: ${val.count} submissions` : 'No Data',
-                })}
-            />
+            {/* Heatmap */}
+            <div className="w-full overflow-x-auto pb-1">
+                <div className="min-w-[620px]">
+                    <CalendarHeatmap
+                        startDate={lastYear}
+                        endDate={today}
+                        values={data}
+                        gutterSize={2.5}
+                        showWeekdayLabels={true}
+                        classForValue={(val) => {
+                            if (!val || val.count === 0) return 'color-empty';
+                            return `color-scale-${Math.min(val.count, 4)}`;
+                        }}
+                        tooltipDataAttrs={val => ({
+                            'data-tooltip-id': 'heatmap-tip',
+                            'data-tooltip-content': val?.date
+                                ? `${val.date} — ${val.count} submission${val.count !== 1 ? 's' : ''}`
+                                : 'No activity',
+                        })}
+                    />
+                </div>
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center gap-1.5 mt-3 justify-end">
+                <span className="text-[9px] text-zinc-500 uppercase tracking-widest">less</span>
+                {['bg-zinc-900', 'bg-[#451a03]', 'bg-[#92400e]', 'bg-[#c2410c]', 'bg-streak'].map((cls, i) => (
+                    <span key={i} className={`w-3 h-3 rounded-sm ${cls}`} />
+                ))}
+                <span className="text-[9px] text-zinc-500 uppercase tracking-widest">more</span>
+            </div>
+
             <Tooltip
-                id="heatmap-tooltip"
+                id="heatmap-tip"
                 style={{
-                    backgroundColor: '#0c1618',
-                    color: '#4ecdc4',
-                    border: '1px solid #374151',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    padding: '8px 12px',
+                    backgroundColor: '#111113', color: '#e4e4e7',
+                    border: '1px solid #27272a', borderRadius: '5px',
+                    fontSize: '10px', fontFamily: 'JetBrains Mono, monospace',
+                    padding: '5px 10px',
                 }}
             />
         </div>
     );
 };
+
 export default SubmissionHeatmap;
