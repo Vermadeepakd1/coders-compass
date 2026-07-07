@@ -361,7 +361,12 @@ const fetchLeetCodeWeakTopic = async (handle) => {
 
   try {
     const cached = await redis.get(cacheKey);
-    if (cached) return JSON.parse(cached);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed && parsed.tag !== "Heap (Priority Queue)") {
+        return parsed;
+      }
+    }
   } catch (e) {}
 
   const query = `
@@ -394,7 +399,6 @@ const fetchLeetCodeWeakTopic = async (handle) => {
     { slug: "depth-first-search", name: "Depth-First Search" },
     { slug: "binary-search", name: "Binary Search" },
     { slug: "breadth-first-search", name: "Breadth-First Search" },
-    { slug: "heap-priority-queue", name: "Heap (Priority Queue)" },
     { slug: "sliding-window", name: "Sliding Window" },
     { slug: "two-pointers", name: "Two Pointers" },
     { slug: "backtracking", name: "Backtracking" },
