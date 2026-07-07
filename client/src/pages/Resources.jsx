@@ -288,12 +288,16 @@ const Resources = () => {
                                         <div className="col-span-1 flex justify-center">
                                             <button
                                                 onClick={() => toggleVisited(item.id)}
-                                                className="transition-colors"
+                                                className={`w-6 h-6 flex items-center justify-center rounded border transition-all duration-150 active:scale-90 ${
+                                                    isVisited
+                                                        ? 'bg-growth/15 border-growth/50 text-growth'
+                                                        : 'bg-transparent border-zinc-700 text-zinc-700 hover:border-zinc-400 hover:text-zinc-400 hover:bg-zinc-800/40'
+                                                }`}
                                                 title={isVisited ? "Mark as unvisited" : "Mark as visited"}
                                             >
                                                 {isVisited
-                                                    ? <CheckCircle2 size={14} className="text-growth" />
-                                                    : <Circle size={14} className="text-zinc-700 hover:text-zinc-500" />
+                                                    ? <CheckCircle2 size={13} />
+                                                    : <Circle size={13} />
                                                 }
                                             </button>
                                         </div>

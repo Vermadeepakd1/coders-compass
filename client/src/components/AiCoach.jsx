@@ -120,7 +120,7 @@ const AiCoach = () => {
         return (
             <button
                 onClick={toggleChat}
-                className="fixed bottom-4 right-4 bg-zinc-900 border border-brand-border text-zinc-200 hover:bg-zinc-800 font-mono text-[10px] uppercase tracking-wider px-3.5 py-2 rounded-sm shadow-lg z-50 flex items-center gap-1.5"
+                className="fixed bottom-4 right-4 bg-ai/10 border border-ai/40 text-ai hover:bg-ai/20 hover:border-ai/60 hover:shadow-[0_0_14px_rgba(6,182,212,0.3)] font-mono text-[10px] uppercase tracking-wider px-3.5 py-2 rounded-sm shadow-lg z-50 flex items-center gap-1.5 transition-all duration-200"
             >
                 <Bot size={13} />
                 <span>Coach Chat</span>

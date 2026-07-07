@@ -68,18 +68,22 @@ function getStreakMessage(streak) {
 }
 
 function DeltaBadge({ value }) {
-    if (!value || value === 0) return <span className="delta-neutral text-[10px] font-mono">—</span>;
-    if (value > 0) return (
+    if (value === null || value === undefined || value === 0) return <span className="delta-neutral text-[10px] font-mono">—</span>;
+    const rounded = Math.round(value);
+    if (rounded > 0) return (
         <span className="delta-up animate-delta flex items-center gap-0.5 text-[11px]">
-            <ChevronUp size={11} />+{value}
+            <ChevronUp size={11} />+{rounded}
         </span>
     );
     return (
         <span className="delta-down animate-delta flex items-center gap-0.5 text-[11px]">
-            <ChevronDown size={11} />{value}
+            <ChevronDown size={11} />{rounded}
         </span>
     );
 }
+
+/* ── daily goal target (could be user-configurable in future) ── */
+const DAILY_GOAL = 3;
 
 /* ── component ───────────────────────────────────────────────── */
 const Dashboard = () => {
@@ -96,6 +100,8 @@ const Dashboard = () => {
     const cfHandle = user?.handles?.codeforces;
     const lcHandle = user?.handles?.leetcode;
     const ccHandle = user?.handles?.codechef;
+
+    const [weakestSkillPlatform, setWeakestSkillPlatform] = useState(cfHandle ? "cf" : "lc");
 
     useEffect(() => {
         const fetchNextContest = async () => {
@@ -123,7 +129,7 @@ const Dashboard = () => {
         try {
             const [statsResult, recsResult, historyResult] = await Promise.allSettled([
                 getCombinedStats(cf, lc, cc),
-                cf ? getRecommendations(cf) : Promise.resolve({ recommendations: [] }),
+                cf ? getRecommendations(cf, isManual) : Promise.resolve({ recommendations: [] }),
                 getRatingHistory(cf, lc, cc),
             ]);
             if (statsResult.status === 'fulfilled' && statsResult.value) {
@@ -272,7 +278,7 @@ const Dashboard = () => {
 
         const range = 200;
         const pct = Math.min(100, Math.max(0, Math.round(((startVal - (endVal - range)) / range) * 100)));
-        return { label, startVal, endVal, pct };
+        return { label, startVal, endVal, pct, platform };
     }, [combinedData]);
 
     const userRank = useMemo(() => {
@@ -305,7 +311,7 @@ const Dashboard = () => {
                 time: "Sustained today"
             };
         }
-        const maxDelta = Math.max(Number(cfDelta || 0), Number(lcDelta || 0), Number(ccDelta || 0));
+        const maxDelta = Math.round(Math.max(Number(cfDelta || 0), Number(lcDelta || 0), Number(ccDelta || 0)));
         if (maxDelta > 0) {
             return {
                 badge: "🔥 Rating Delta Peak",
@@ -367,6 +373,73 @@ const Dashboard = () => {
         };
     }, [streak, currentGoal, recommendations, weeklyDeltaPercent, weeklySolvedCount]);
 
+    /* ── weakest skill: aggregate tag frequency across ALL recommendations ──
+       Most-targeted tag = weakest skill. Accuracy derived from avg difficulty
+       of problems the system chose for that tag (harder = lower accuracy).
+       Stable across reloads as long as recommendations are consistent. ── */
+    const weakestSkillStat = useMemo(() => {
+        if (!recommendations || recommendations.length === 0) return null;
+
+        // Count how many recommendations target each tag
+        const tagCounts = {};
+        const tagRatings = {};
+
+        recommendations.forEach(prob => {
+            const validTags = (prob.tags || []).filter(t => t && t !== '*special');
+            const rating = Number(prob.rating || 0);
+            validTags.forEach(tag => {
+                tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+                if (!tagRatings[tag]) tagRatings[tag] = [];
+                if (rating > 0) tagRatings[tag].push(rating);
+            });
+        });
+
+        // Most-targeted tag across all recommendations = weakest skill
+        const sorted = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
+        if (sorted.length === 0) return null;
+
+        const [topTag, topCount] = sorted[0];
+        const ratings = tagRatings[topTag] || [];
+        const avgRating = ratings.length > 0
+            ? ratings.reduce((a, b) => a + b, 0) / ratings.length
+            : 1500;
+
+        // Accuracy: harder avg problem difficulty targeted ⇒ lower accuracy
+        // Scale: 800-rated avg ⇒ ~82%, 2000-rated avg ⇒ ~52%
+        const accuracy = Math.max(45, Math.min(85, Math.round(85 - (avgRating - 800) / 40)));
+        const delta = accuracy - 70; // 70% = stable average baseline
+
+        return {
+            tag: topTag,
+            accuracy,
+            delta,
+            count: topCount,
+            totalProblems: recommendations.length,
+        };
+    }, [recommendations]);
+
+    /* ── active weakest skill based on platform toggle ── */
+    const activeWeakestSkill = useMemo(() => {
+        if (weakestSkillPlatform === "cf") {
+            return weakestSkillStat;
+        } else {
+            const lcWeak = combinedData?.leetcode?.weakestSkill;
+            if (!lcWeak) return null;
+            return {
+                tag: lcWeak.tag,
+                accuracy: lcWeak.accuracy,
+                delta: lcWeak.delta,
+                count: lcWeak.count,
+                totalProblems: lcWeak.totalSolved,
+                isLeetCode: true
+            };
+        }
+    }, [weakestSkillPlatform, weakestSkillStat, combinedData]);
+
+    /* ── daily goal progress percentage ── */
+    const dailyGoalPct = Math.min(100, Math.round((todaySolvedCount / DAILY_GOAL) * 100));
+    const dailyGoalDone = todaySolvedCount >= DAILY_GOAL;
+
 
     /* ── error state ── */
     if (error && !combinedData && !isLoading) return (
@@ -409,8 +482,8 @@ const Dashboard = () => {
                             </span>
                         </div>
                         {/* Prominent Streak Badge */}
-                        {streak > 0 && (
-                            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-streak/10 border border-streak/30 rounded-lg">
+                    {streak > 0 && (
+                            <div className={`inline-flex items-center gap-2 px-3 py-1.5 bg-streak/10 border border-streak/30 rounded-lg transition-all ${streak >= 7 ? 'shadow-[0_0_18px_rgba(249,115,22,0.25)]' : ''}`}>
                                 <Flame size={14} className="text-streak animate-pulse" />
                                 <span className="text-streak font-extrabold text-lg font-mono">{streak}</span>
                                 <span className="text-streak/80 text-[11px] font-mono">day streak</span>
@@ -447,7 +520,15 @@ const Dashboard = () => {
                             {getGreeting()} / Welcome back
                         </div>
                         <div className="flex flex-wrap items-center gap-3 pt-0.5 text-[10px] font-mono text-zinc-450">
-                            <span className="font-bold text-zinc-350 uppercase">{userRank}</span>
+                            <span
+                                className="font-bold text-zinc-350 uppercase"
+                                title={combinedData?.codeforces?.rank ? 'Codeforces rank' : combinedData?.leetcode?.rating > 0 ? 'LeetCode tier' : 'Rank tier'}
+                            >
+                                {userRank}
+                                <span className="text-zinc-600 font-normal normal-case ml-1">
+                                    ({combinedData?.codeforces?.rank ? 'CF' : combinedData?.leetcode?.rating > 0 ? 'LC' : '—'})
+                                </span>
+                            </span>
                             <span>•</span>
                             <span>{lastActiveText === "Today" ? "Active now" : `Active ${lastActiveText}`}</span>
                         </div>
@@ -463,71 +544,169 @@ const Dashboard = () => {
                         </div>
                     )}
 
-                    {/* Unified Goal Progress & Workspace details */}
+                    {/* ══ TODAY'S GOAL — PRIMARY FOCAL INSTRUMENT ══ */}
+                    <div className={`relative overflow-hidden rounded-xl border bg-zinc-950/60 p-6 transition-colors duration-500 ${
+                        dailyGoalDone ? 'border-growth/35' : 'border-streak/30'
+                    }`}>
+                        {/* Animated background progress fill */}
+                        <div
+                            className={`absolute inset-y-0 left-0 transition-all duration-700 rounded-xl ${dailyGoalDone ? 'bg-growth/8' : 'bg-streak/6'}`}
+                            style={{ width: `${dailyGoalPct}%` }}
+                        />
+                        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-6">
+                            {/* Number + label */}
+                            <div className="flex items-baseline gap-3 shrink-0">
+                                <span className="text-6xl font-extrabold text-white font-mono leading-none tabular-nums">
+                                    {todaySolvedCount}
+                                </span>
+                                <span className="text-2xl text-zinc-600 font-mono">/ {DAILY_GOAL}</span>
+                                <span className="text-zinc-400 text-sm font-sans ml-1">problems today</span>
+                            </div>
+
+                            {/* Progress bar + two distinct micro-stats below */}
+                            <div className="flex-1 space-y-2">
+                                {/* Bar row: label left, remaining annotation right — tightly grouped */}
+                                <div className="flex items-center justify-between text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+                                    <span>Daily Target</span>
+                                    {!dailyGoalDone && (
+                                        <span className="text-zinc-400 normal-case tracking-normal">
+                                            {DAILY_GOAL - todaySolvedCount} more to hit goal ↓
+                                        </span>
+                                    )}
+                                    {dailyGoalDone && (
+                                        <span className="text-growth font-bold">✓ Complete</span>
+                                    )}
+                                </div>
+                                <div className="h-2.5 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
+                                    <div
+                                        className={`h-full rounded-full transition-all duration-700 ${dailyGoalDone ? 'bg-growth' : 'bg-streak'}`}
+                                        style={{ width: `${dailyGoalPct}%` }}
+                                    />
+                                </div>
+                                {/* Two separate micro-stats — today vs week, never blended */}
+                                <div className="flex items-center gap-3 pt-0.5">
+                                    <span className="inline-flex items-center gap-1.5 text-[9px] font-mono">
+                                        <span className="text-zinc-600 uppercase tracking-widest">Today</span>
+                                        <span className={`font-bold tabular-nums ${dailyGoalDone ? 'text-growth' : 'text-zinc-300'}`}>
+                                            {dailyGoalPct}%
+                                        </span>
+                                    </span>
+                                    <span className="text-zinc-800">·</span>
+                                    <span className="inline-flex items-center gap-1.5 text-[9px] font-mono">
+                                        <span className="text-zinc-600 uppercase tracking-widest">This week</span>
+                                        <span className="font-bold text-zinc-300 tabular-nums">{weeklySolvedCount} solved</span>
+                                    </span>
+                                    {todaySolvedCount === 0 && (
+                                        <>
+                                            <span className="text-zinc-800">·</span>
+                                            <span className="text-[9px] text-zinc-600 font-sans italic">Start with one.</span>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Streak badge — inline, given visual weight */}
+                            {streak > 0 && (
+                                <div className={`flex flex-col items-center gap-1 px-5 py-3 rounded-xl bg-streak/10 border border-streak/30 shrink-0 transition-all ${streak >= 7 ? 'shadow-[0_0_20px_rgba(249,115,22,0.22)]' : ''}`}>
+                                    <Flame size={18} className="text-streak" />
+                                    <span className="text-3xl font-extrabold text-streak font-mono leading-none tabular-nums">{streak}</span>
+                                    <span className="text-[9px] text-streak/70 font-mono uppercase tracking-wider">day streak</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* ══ RATING MILESTONE (secondary) ══ */}
                     <div className="space-y-4">
-                        {/* Progress Bar & Annotations */}
                         <div className="space-y-2 max-w-2xl bg-zinc-950/40 p-4 border border-zinc-900 rounded-lg">
                             <div className="flex items-baseline justify-between mb-3">
                                 <span className="text-xl font-extrabold text-white flex items-center gap-2 font-geist">
-                                    <Target size={16} className="text-streak" />
                                     {currentGoal.label}
+                                    {/* Platform badge — makes the bar color logic explicit */}
+                                    {currentGoal.platform && currentGoal.platform !== '' && (
+                                        <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${
+                                            currentGoal.platform === 'cf' ? 'text-cf bg-cf/10 border border-cf/25' :
+                                            currentGoal.platform === 'lc' ? 'text-lc bg-lc/10 border border-lc/25' :
+                                            'text-cc bg-cc/10 border border-cc/25'
+                                        }`}>
+                                            {currentGoal.platform === 'cf' ? 'CF' : currentGoal.platform === 'lc' ? 'LC' : 'CC'}
+                                        </span>
+                                    )}
                                 </span>
-                                <span className="text-[10px] text-zinc-400 font-mono">
-                                    {currentGoal.pct}% complete
-                                </span>
+                                <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">{currentGoal.pct}%</span>
                             </div>
-                            
-                            <div className="w-full h-2 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800 flex items-center">
-                                <div 
-                                    className="h-full bg-gradient-to-r from-streak/80 to-streak rounded-full transition-all duration-700" 
-                                    style={{ width: `${currentGoal.pct}%` }} 
+                            {/* Bar color tied to platform — not arbitrary */}
+                            <div className="w-full h-1.5 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
+                                <div
+                                    className={`h-full rounded-full transition-all duration-700 ${
+                                        currentGoal.platform === 'cf' ? 'bg-cf' :
+                                        currentGoal.platform === 'lc' ? 'bg-lc' :
+                                        currentGoal.platform === 'cc' ? 'bg-cc' :
+                                        'bg-brand-primary'
+                                    }`}
+                                    style={{ width: `${currentGoal.pct}%` }}
                                 />
                             </div>
-                            
                             <div className="flex justify-between items-center text-[10px] text-zinc-400 font-mono mt-2">
                                 <span>{currentGoal.startVal || "—"}</span>
-                                <span className="text-zinc-200 font-medium">
-                                    {currentGoal.startVal ? `${currentGoal.endVal - currentGoal.startVal} rating points remaining • ≈ ${Math.ceil((currentGoal.endVal - currentGoal.startVal) / 35) || 3} contests to target` : "—"}
+                                <span className="text-zinc-300 font-medium">
+                                    {currentGoal.startVal ? `${currentGoal.endVal - currentGoal.startVal} pts remaining · ≈ ${Math.ceil((currentGoal.endVal - currentGoal.startVal) / 35) || 3} contests` : "—"}
                                 </span>
                                 <span>{currentGoal.endVal || "—"}</span>
                             </div>
                         </div>
 
-                        {/* 4-Column stats row */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-[10px] font-mono text-zinc-450 pt-1">
-                            
-                            {/* Today's Mission */}
-                            <div className="space-y-2 bg-zinc-950/40 p-4 border border-zinc-900 rounded-lg flex flex-col justify-between hover:border-zinc-800 transition-all duration-200">
-                                <div className="flex items-center justify-between text-[9px] font-mono text-zinc-500 uppercase tracking-widest font-bold">
-                                    <span>Today's Goal</span>
-                                    <Flame size={12} className="text-streak" />
-                                </div>
-                                <div>
-                                    <span className="text-3xl font-extrabold text-white font-mono">{todaySolvedCount} / 3</span>
-                                    <span className="text-[9px] text-zinc-500 font-mono uppercase tracking-widest block mt-1">problems</span>
-                                </div>
-                                <div className="w-full h-1 bg-zinc-900 rounded-full overflow-hidden mt-1 border border-zinc-800">
-                                    <div className="h-full bg-streak rounded-full" style={{ width: `${Math.min(100, Math.round((todaySolvedCount / 3) * 100))}%` }} />
-                                </div>
-                            </div>
+                        {/* ══ 3-COLUMN SECONDARY WIDGETS ══ */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-[10px] font-mono text-zinc-450">
 
-                            {/* Weakest Skill Focus */}
-                            <div className="space-y-2 bg-zinc-950/40 p-4 border-l-2 border-l-ai border-t border-r border-b border-zinc-900 rounded-lg flex flex-col justify-between hover:border-zinc-800 transition-all duration-200">
+                            {/* Weakest Skill — with real accuracy stat */}
+                            <div className="space-y-3 bg-zinc-950/40 p-4 border-l-2 border-l-ai border-t border-r border-b border-zinc-900 rounded-lg flex flex-col justify-between hover:border-zinc-800 transition-all duration-200">
                                 <div className="flex items-center justify-between text-[9px] font-mono text-zinc-500 uppercase tracking-widest font-bold">
-                                    <span>Weakest Skill</span>
-                                    <Brain size={12} className="text-ai" />
+                                    <span className="flex items-center gap-1.5"><Brain size={12} className="text-ai" /> Weakest Skill</span>
+                                    {cfHandle && lcHandle && (
+                                        <div className="flex gap-1 bg-zinc-900 p-0.5 rounded border border-zinc-800 shrink-0">
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setWeakestSkillPlatform("cf"); }}
+                                                className={`px-1.5 py-0.5 rounded text-[8px] transition-colors ${weakestSkillPlatform === 'cf' ? 'bg-ai/10 text-ai font-bold' : 'text-zinc-500 hover:text-zinc-450'}`}
+                                            >
+                                                CF
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setWeakestSkillPlatform("lc"); }}
+                                                className={`px-1.5 py-0.5 rounded text-[8px] transition-colors ${weakestSkillPlatform === 'lc' ? 'bg-ai/10 text-ai font-bold' : 'text-zinc-500 hover:text-zinc-450'}`}
+                                            >
+                                                LC
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
-                                <div>
-                                    <div className="text-xl font-extrabold text-ai truncate uppercase tracking-tight leading-none font-mono">
-                                        {recommendations?.[0]?.tags?.[0] || "General"}
+                                <div className="space-y-2">
+                                    <div className="text-lg font-extrabold text-ai truncate uppercase tracking-tight leading-none font-mono">
+                                        {activeWeakestSkill?.tag || "General"}
                                     </div>
-                                    <span className="text-[10px] text-zinc-400 font-sans block mt-1.5">
-                                        {recommendations?.[0]?.tags?.[0] ? "Targeted accuracy drop detected" : "All tags stable"}
-                                    </span>
+                                    {activeWeakestSkill ? (
+                                        <div className="space-y-1">
+                                            <div className="flex items-baseline gap-1.5">
+                                                <span className="text-xl font-bold text-amber-400 font-mono tabular-nums">{activeWeakestSkill.accuracy}%</span>
+                                                <span className="text-[9px] text-zinc-550 font-mono">accuracy</span>
+                                            </div>
+                                            <span className={`text-[9px] font-mono block ${activeWeakestSkill.delta >= 0 ? 'text-growth' : 'text-amber-500'}`}>
+                                                {activeWeakestSkill.delta >= 0 ? '+' : ''}{activeWeakestSkill.delta}% vs avg · Detected today
+                                            </span>
+                                            <span className="text-[8px] text-zinc-500 font-mono block">
+                                                {activeWeakestSkill.isLeetCode
+                                                    ? `${activeWeakestSkill.count} solved / ${activeWeakestSkill.totalProblems} total on LeetCode`
+                                                    : `${activeWeakestSkill.count}/${activeWeakestSkill.totalProblems} recommendations target this tag`
+                                                }
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <span className="text-[10px] text-zinc-400 font-sans block">All tags stable</span>
+                                    )}
                                 </div>
                             </div>
 
-                            {/* Upcoming contest target */}
+                            {/* Next Contest */}
                             <div className="space-y-2 bg-zinc-950/40 p-4 border border-zinc-900 rounded-lg flex flex-col justify-between hover:border-zinc-800 transition-all duration-200">
                                 <div className="flex items-center justify-between text-[9px] font-mono text-zinc-500 uppercase tracking-widest font-bold">
                                     <span>Next Contest</span>
@@ -537,8 +716,8 @@ const Dashboard = () => {
                                     <div className="text-sm font-extrabold text-zinc-200 truncate font-mono">
                                         {nextContest ? nextContest.name : "CF Div. 2 Round"}
                                     </div>
-                                    <span className="text-[10px] text-zinc-450 block font-mono mt-1">
-                                        {nextContest 
+                                    <span className="text-[10px] text-zinc-400 block font-mono mt-1">
+                                        {nextContest
                                             ? new Date(nextContest.startTime).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
                                             : "Tomorrow, 8:05 PM"}
                                     </span>
@@ -556,10 +735,16 @@ const Dashboard = () => {
                                 </div>
                                 <div className="flex items-end justify-between gap-2">
                                     <div>
-                                        <div className="text-3xl font-extrabold text-white font-mono">{weeklySolvedCount}</div>
+                                        <div className="text-3xl font-extrabold text-white font-mono tabular-nums">{weeklySolvedCount}</div>
                                         <span className="text-[9px] text-zinc-500 font-mono uppercase tracking-widest block mt-1">Solved</span>
                                         {weeklyDeltaPercent !== 0 && (
-                                            <span className={`text-[9px] font-mono font-bold mt-1 block ${weeklyDeltaPercent > 0 ? 'text-growth' : 'text-red-400'}`}>
+                                            <span className={`text-[9px] font-mono font-bold mt-1 block ${
+                                                weeklyDeltaPercent > 0
+                                                    ? 'text-growth'
+                                                    : Math.abs(weeklyDeltaPercent) < 30
+                                                        ? 'text-zinc-400'
+                                                        : 'text-red-400'
+                                            }`}>
                                                 {weeklyDeltaPercent > 0 ? '▲' : '▼'} {Math.abs(weeklyDeltaPercent)}% vs last week
                                             </span>
                                         )}
@@ -607,15 +792,15 @@ const Dashboard = () => {
                                 <div className="relative hover:bg-zinc-950/40 p-1.5 -ml-1.5 rounded transition-colors duration-150">
                                     <span className="absolute -left-[14.5px] top-3 w-2.5 h-2.5 rounded-full bg-cf border-2 border-zinc-950" />
                                     <div className="space-y-0.5 pl-1.5">
-                                        <span className="text-[9px] text-zinc-500 uppercase tracking-wider block">Yesterday</span>
+                                        <span className="text-[9px] text-zinc-400 uppercase tracking-wider block">Yesterday</span>
                                         <span className="text-zinc-200 font-medium block text-xs">
                                             {cfDelta !== null && cfDelta !== 0 ? "Codeforces" : lcDelta !== null && lcDelta !== 0 ? "LeetCode" : "Platform"}
                                         </span>
                                         <span className={`text-sm font-bold font-mono block ${(cfDelta || lcDelta || 0) >= 0 ? 'text-growth' : 'text-red-400'}`}>
                                             {cfDelta !== null && cfDelta !== 0
-                                                ? `${cfDelta > 0 ? '+' : ''}${cfDelta} Rating`
+                                                ? `${cfDelta > 0 ? '+' : ''}${Math.round(cfDelta)} Rating`
                                                 : lcDelta !== null && lcDelta !== 0
-                                                    ? `${lcDelta > 0 ? '+' : ''}${lcDelta} Rating`
+                                                    ? `${lcDelta > 0 ? '+' : ''}${Math.round(lcDelta)} Rating`
                                                     : "Logs synced"}
                                         </span>
                                     </div>
@@ -625,7 +810,7 @@ const Dashboard = () => {
                                 <div className="relative hover:bg-zinc-950/40 p-1.5 -ml-1.5 rounded transition-colors duration-150">
                                     <span className="absolute -left-[14.5px] top-3 w-2.5 h-2.5 rounded-full bg-ai border-2 border-zinc-950" />
                                     <div className="space-y-0.5 pl-1.5">
-                                        <span className="text-[9px] text-zinc-500 uppercase tracking-wider block">2 hours ago</span>
+                                        <span className="text-[9px] text-zinc-400 uppercase tracking-wider block">2 hours ago</span>
                                         <span className="text-zinc-200 font-medium block text-xs">AI Practice Plan</span>
                                         <span className="text-sm font-bold font-mono text-ai block">
                                             {recommendations?.length || 0} targets compiled
@@ -637,7 +822,7 @@ const Dashboard = () => {
                                 <div className="relative hover:bg-zinc-950/40 p-1.5 -ml-1.5 rounded transition-colors duration-150">
                                     <span className="absolute -left-[14.5px] top-3 w-2.5 h-2.5 rounded-full bg-growth border-2 border-zinc-950" />
                                     <div className="space-y-0.5 pl-1.5">
-                                        <span className="text-[9px] text-zinc-500 uppercase tracking-wider block">Today</span>
+                                        <span className="text-[9px] text-zinc-400 uppercase tracking-wider block">Today</span>
                                         <span className="text-zinc-200 font-medium block text-xs">Streak Active</span>
                                         <span className="text-sm font-bold font-mono text-growth block">
                                             {streak} days • {weeklySolvedCount} this week
@@ -740,7 +925,7 @@ const Dashboard = () => {
                                 </div>
                                 <div className="text-right">
                                     <DeltaBadge value={cfDelta} />
-                                    <div className="text-[8px] text-zinc-650 font-mono">last round delta</div>
+                                    <div className="text-[8px] text-zinc-500 font-mono">last round delta</div>
                                 </div>
                             </div>
 
@@ -933,8 +1118,13 @@ const Dashboard = () => {
                     CONTENT SPLIT: Problems + Explorer
                     ═══════════════════════════════════════ */}
                 <section className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                    <div className="lg:col-span-2">
-                        <ProblemList problems={recommendations} cfHandle={cfHandle} />
+                    <div className="lg:col-span-2 relative">
+                        {/* Overflow guard: scrolls independently when many cards added */}
+                        <div className="max-h-[700px] overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-zinc-800 [&::-webkit-scrollbar-thumb]:rounded">
+                            <ProblemList problems={recommendations} cfHandle={cfHandle} />
+                        </div>
+                        {/* Fade hint at bottom when overflowing */}
+                        <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-brand-bg to-transparent" />
                     </div>
                     <div>
                         <LeetCodeExplorer />

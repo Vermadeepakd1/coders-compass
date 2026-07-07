@@ -129,10 +129,24 @@ const shuffleArray = (array) => {
   return arr;
 };
 
-const getRecommendations = async (handle) => {
+const getRecommendations = async (handle, forceRefresh = false) => {
+  const cacheKey = `cf:recommendations:${handle}`;
+
+  // 1. Try Cache First unless force refresh
+  if (!forceRefresh) {
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        // console.log("getRecommendations: Cache HIT ⚡");
+        return JSON.parse(cached);
+      }
+    } catch (e) {
+      console.error("getRecommendations cache read failed:", e.message);
+    }
+  }
+
   try {
     // Parallelize fetching: User Status, Submissions, Problem Set
-    // This significantly reduces total wait time compared to sequential awaiting
     const [userData, submissions, allProblems] = await Promise.all([
       fetchCFStatus(handle).catch((e) => {
         console.error("getRecommendations: fetchCFStatus failed", e.message);
@@ -156,16 +170,16 @@ const getRecommendations = async (handle) => {
 
     if (!userData) {
       console.error("getRecommendations: Could not fetch user data");
-      return null; // Return null to indicate failure/not found
+      return null;
     }
     const currentRating = userData.rating === "Unrated" ? 800 : userData.rating;
 
-    //filter accepted submission
+    // Filter accepted submissions
     const acceptedSubmissions = submissions.filter(
       (sub) => sub.verdict === "OK",
     );
 
-    // create set of solved problem ID (e.g. "4A", "150B")
+    // Create set of solved problem IDs
     const solvedSet = new Set(
       acceptedSubmissions.map(
         (sub) => `${sub.problem.contestId}${sub.problem.index}`,
@@ -176,11 +190,43 @@ const getRecommendations = async (handle) => {
       console.error("getRecommendations: No problems in cache");
       return null;
     }
-    // target rating
+
+    // --- TELEMETRY: WEAKEST TOPIC CALCULATION ---
+    const tagStats = {};
+    submissions.forEach((sub) => {
+      if (!sub.problem || !sub.problem.tags) return;
+      sub.problem.tags.forEach((tag) => {
+        if (tag === "*special") return; // Skip special technique tag
+        if (!tagStats[tag]) {
+          tagStats[tag] = { solved: 0, failed: 0, total: 0 };
+        }
+        tagStats[tag].total++;
+        if (sub.verdict === "OK") {
+          tagStats[tag].solved++;
+        } else {
+          tagStats[tag].failed++;
+        }
+      });
+    });
+
+    // Identify tag with highest failure rate (only considering tags with at least 2 attempts to reduce noise)
+    let tagList = Object.entries(tagStats).map(([tag, stats]) => ({
+      tag,
+      ...stats,
+      failureRate: stats.total > 0 ? stats.failed / stats.total : 0,
+    }));
+
+    let candidates = tagList.filter((t) => t.total >= 2);
+    if (candidates.length === 0) candidates = tagList;
+
+    candidates.sort((a, b) => b.failureRate - a.failureRate || b.total - a.total);
+    const weakestTag = candidates[0]?.tag || null;
+
+    // Target rating range
     const minRating = currentRating + 50;
     const maxRating = currentRating + 200;
 
-    // filter unsolved problem with target rating
+    // Filter unsolved problems within rating range
     const suitableProblems = allProblems.filter((problem) => {
       const problemId = `${problem.contestId}${problem.index}`;
       const hasRating = problem.rating !== undefined;
@@ -191,8 +237,32 @@ const getRecommendations = async (handle) => {
       return hasRating && inRange && notSolved;
     });
 
-    const shuffled = shuffleArray(suitableProblems);
-    const recommendations = shuffled.slice(0, 3);
+    // --- PROBLEM SELECTION ---
+    let selected = [];
+
+    // Prioritize weakest tag if found
+    if (weakestTag) {
+      const targeted = suitableProblems.filter(
+        (p) => p.tags && p.tags.includes(weakestTag),
+      );
+      if (targeted.length > 0) {
+        const shuffledTargeted = shuffleArray(targeted);
+        // Select up to 2 targeted problems so we still have variety
+        selected = shuffledTargeted.slice(0, 2);
+      }
+    }
+
+    // Fill the remaining recommendations from other suitable problems
+    const remaining = suitableProblems.filter((p) => !selected.includes(p));
+    const shuffledRemaining = shuffleArray(remaining);
+    const recommendations = [...selected, ...shuffledRemaining].slice(0, 3);
+
+    // Save to Redis (24 hours cache)
+    try {
+      await redis.set(cacheKey, JSON.stringify(recommendations), "EX", 24 * 60 * 60);
+    } catch (e) {
+      console.error("getRecommendations cache write failed:", e.message);
+    }
 
     return recommendations;
   } catch (error) {
@@ -270,14 +340,22 @@ const calculateCFStats = async (handle) => {
         solvedSet.add(sub.problem.contestId + sub.problem.index);
     });
 
-    // 2. Heatmap Data (Date -> Count)
+    // 2. Heatmap Data (Date -> Unique Solved Count)
     const heatmap = {};
+    const solvedOnDate = {};
     submissions.forEach((sub) => {
-      // Convert UNIX timestamp to YYYY-MM-DD
+      if (sub.verdict !== "OK") return;
+      const problemId = `${sub.problem.contestId}${sub.problem.index}`;
       const date = new Date(sub.creationTimeSeconds * 1000)
         .toISOString()
         .split("T")[0];
-      heatmap[date] = (heatmap[date] || 0) + 1;
+      if (!solvedOnDate[date]) {
+        solvedOnDate[date] = new Set();
+      }
+      solvedOnDate[date].add(problemId);
+    });
+    Object.entries(solvedOnDate).forEach(([date, problemSet]) => {
+      heatmap[date] = problemSet.size;
     });
 
     const result = { totalSolved: solvedSet.size, heatmap };

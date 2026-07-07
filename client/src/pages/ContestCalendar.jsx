@@ -402,7 +402,7 @@ const ContestCalendar = () => {
                                                                     {fmtTime(c.startTime)} · {fmtDuration(c.startTime, c.endTime)}
                                                                 </span>
                                                             </div>
-                                                            <p className="text-xs text-zinc-200 font-sans leading-snug truncate">{c.title}</p>
+                                                            <p className="text-xs text-zinc-200 font-sans leading-snug truncate" title={c.title}>{c.title}</p>
                                                             <div className="flex gap-3 mt-1.5">
                                                                 <a href={c.url} target="_blank" rel="noopener noreferrer"
                                                                    className="text-[9px] font-mono text-zinc-500 hover:text-zinc-200 flex items-center gap-0.5 transition-colors">

@@ -284,7 +284,7 @@ body {
    ==================================================== */
 .react-calendar-heatmap text {
   font-size: 8px;
-  fill: #52525b;
+  fill: #71717a;
   font-family: var(--font-mono);
 }
 .react-calendar-heatmap .react-calendar-heatmap-weekday-labels {

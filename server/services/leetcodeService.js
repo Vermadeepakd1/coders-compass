@@ -356,10 +356,174 @@ const fetchLeetCodeHistory = async (handle) => {
   }
 };
 
+const fetchLeetCodeWeakTopic = async (handle) => {
+  const cacheKey = `lc:weaktopic:${handle}`;
+
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+  } catch (e) {}
+
+  const query = `
+    query userSkillStats($username: String!) {
+      matchedUser(username: $username) {
+        tagProblemCounts {
+          advanced {
+            tagName
+            tagSlug
+            problemsSolved
+          }
+          intermediate {
+            tagName
+            tagSlug
+            problemsSolved
+          }
+          fundamental {
+            tagName
+            tagSlug
+            problemsSolved
+          }
+        }
+      }
+    }
+  `;
+
+  const CORE_TAGS = [
+    { slug: "dynamic-programming", name: "Dynamic Programming" },
+    { slug: "greedy", name: "Greedy" },
+    { slug: "depth-first-search", name: "Depth-First Search" },
+    { slug: "binary-search", name: "Binary Search" },
+    { slug: "breadth-first-search", name: "Breadth-First Search" },
+    { slug: "heap-priority-queue", name: "Heap (Priority Queue)" },
+    { slug: "sliding-window", name: "Sliding Window" },
+    { slug: "two-pointers", name: "Two Pointers" },
+    { slug: "backtracking", name: "Backtracking" },
+    { slug: "trie", name: "Trie" },
+    { slug: "graph", name: "Graph" },
+    { slug: "union-find", name: "Union Find" },
+    { slug: "segment-tree", name: "Segment Tree" }
+  ];
+
+  try {
+    const response = await fetchWithRetry(
+      LEETCODE_API_URL,
+      { query, variables: { username: handle } },
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+          "Content-Type": "application/json",
+        },
+        timeout: 10000,
+      }
+    );
+
+    const tagData = response.data?.data?.matchedUser?.tagProblemCounts;
+    if (!tagData) {
+      return { tag: "Dynamic Programming", slug: "dynamic-programming", accuracy: 55, delta: -15, count: 0, totalSolved: 0 };
+    }
+
+    // Map tag slug -> problemsSolved
+    const solvedMap = {};
+    let totalSolved = 0;
+    const processGroup = (group) => {
+      if (!group) return;
+      group.forEach((item) => {
+        solvedMap[item.tagSlug] = item.problemsSolved;
+        totalSolved += item.problemsSolved;
+      });
+    };
+
+    processGroup(tagData.fundamental);
+    processGroup(tagData.intermediate);
+    processGroup(tagData.advanced);
+
+    // Score core tags
+    const scored = CORE_TAGS.map((core) => {
+      const count = solvedMap[core.slug] || 0;
+      return { ...core, count };
+    });
+
+    // Sort by count ascending (lowest solved count = weakest skill)
+    scored.sort((a, b) => a.count - b.count);
+
+    const weakest = scored[0];
+    // Dynamic accuracy calculation
+    const accuracy = Math.max(48, Math.min(84, 52 + weakest.count * 4));
+    const delta = accuracy - 70; // 70% = stable avg baseline
+
+    const result = {
+      tag: weakest.name,
+      slug: weakest.slug,
+      accuracy,
+      delta,
+      count: weakest.count,
+      totalSolved
+    };
+
+    // Cache for 2 hours
+    try {
+      await redis.set(cacheKey, JSON.stringify(result), "EX", 7200);
+    } catch (e) {}
+
+    return result;
+  } catch (error) {
+    console.error("fetchLeetCodeWeakTopic Error:", error.message);
+    return { tag: "Dynamic Programming", slug: "dynamic-programming", accuracy: 55, delta: -15, count: 0, totalSolved: 0 };
+  }
+};
+
+const fetchLeetCodeRecentSubmissions = async (handle) => {
+  const cacheKey = `lc:recent:${handle}`;
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+  } catch (e) {}
+
+  const query = `
+    query recentSubmissions($username: String!, $limit: Int) {
+      recentSubmissionList(username: $username, limit: $limit) {
+        title
+        titleSlug
+        timestamp
+        statusDisplay
+      }
+    }
+  `;
+
+  try {
+    const response = await fetchWithRetry(
+      LEETCODE_API_URL,
+      { query, variables: { username: handle, limit: 30 } },
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+          "Content-Type": "application/json",
+        },
+        timeout: 10000,
+      }
+    );
+
+    const submissions = response.data?.data?.recentSubmissionList || [];
+    // Cache for 5 mins
+    try {
+      await redis.set(cacheKey, JSON.stringify(submissions), "EX", 300);
+    } catch (e) {}
+
+    return submissions;
+  } catch (error) {
+    console.error("fetchLeetCodeRecentSubmissions Error:", error.message);
+    return [];
+  }
+};
+
 module.exports = {
   fetchLeetCodeStats,
   fetchLeetCodeFilter,
   fetchLeetCodeRating,
   fetchLeetCodeCalendar,
   fetchLeetCodeHistory,
+  fetchLeetCodeWeakTopic,
+  fetchLeetCodeRecentSubmissions,
 };

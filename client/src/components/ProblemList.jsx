@@ -140,12 +140,16 @@ const ProblemList = ({ problems, cfHandle }) => {
                                     <span className="text-zinc-400">est: {estTime}</span>
                                 </div>
                                 
-                                <button 
+                                <button
                                     onClick={() => toggleBookmark(probId)}
-                                    className="text-zinc-550 hover:text-zinc-300 transition-colors"
-                                    title={isBookmarked ? "Remove Bookmark" : "Bookmark Problem"}
+                                    className={`flex items-center justify-center w-6 h-6 rounded transition-all duration-150 active:scale-90 ${
+                                        isBookmarked
+                                            ? 'bg-streak/15 border border-streak/40 text-streak'
+                                            : 'text-zinc-600 hover:text-zinc-400 border border-transparent hover:border-zinc-700'
+                                    }`}
+                                    title={isBookmarked ? "Saved — click to remove" : "Save problem"}
                                 >
-                                    <Bookmark size={11} className={isBookmarked ? "fill-streak text-streak" : "text-zinc-600"} />
+                                    <Bookmark size={11} className={isBookmarked ? "fill-streak" : ""} />
                                 </button>
                             </div>
 
@@ -160,7 +164,7 @@ const ProblemList = ({ problems, cfHandle }) => {
                             <div className="space-y-2">
                                 <span className="text-zinc-500 font-mono text-[8px] uppercase tracking-wider block font-bold">Why this problem?</span>
                                 <div className="flex flex-wrap gap-1.5">
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-red-950/40 border border-red-900/50 text-red-400 text-[9px] font-mono font-bold">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-950/40 border border-amber-800/40 text-amber-400 text-[9px] font-mono font-bold">
                                         Accuracy ↓{accuracy}%
                                     </span>
                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-ai/10 border border-ai/20 text-ai text-[9px] font-mono font-bold capitalize">

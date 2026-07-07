@@ -66,9 +66,9 @@ const HeroPage = () => {
                             </button>
                             <button
                                 onClick={() => navigate('/login')}
-                                className="btn-secondary text-xs py-2.5 px-6"
+                                className="text-zinc-500 text-xs hover:text-zinc-300 transition-colors py-1"
                             >
-                                Access My Dashboard
+                                Already have an account? Sign in →
                             </button>
                         </div>
                     </div>
@@ -190,26 +190,55 @@ const HeroPage = () => {
                                 Trace your <span className="font-semibold text-cf">Ratings trajectory</span>.
                             </h3>
                             <p className="text-zinc-400 text-sm leading-relaxed font-sans">
-                                Monitor your ranking delta in real time. Our unified engine overlay charts your latest contest scores from multiple platforms, displaying performance changes instantly.
+                                Monitor your ranking delta in real time. Individual platform charts trace your rating history for each contest round across Codeforces, LeetCode, and CodeChef.
                             </p>
                         </div>
-                        <div className="lg:col-span-7 bg-zinc-900 border border-zinc-800 rounded-lg p-5 font-mono text-[10px] space-y-4 shadow-xl">
+                        <div className="lg:col-span-7 bg-zinc-900 border border-zinc-800 rounded-lg p-5 font-mono text-[10px] space-y-3 shadow-xl">
                             <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-                                <span className="text-zinc-300 font-bold uppercase">TRAJECTORY_SIMULATOR</span>
-                                <span className="text-zinc-600">STABLE</span>
+                                <span className="text-zinc-300 font-bold uppercase">PLATFORM_CHARTS</span>
+                                <span className="text-zinc-600">3 FEEDS ACTIVE</span>
                             </div>
-                            <div className="h-32 flex items-end gap-2 pt-6 relative border-b border-l border-zinc-800">
-                                <div className="absolute inset-0 flex flex-col justify-between py-2 opacity-[0.05]">
-                                    <div className="border-b border-white" />
-                                    <div className="border-b border-white" />
-                                    <div className="border-b border-white" />
+                            {/* Three separate per-platform mini charts — matching the real dashboard */}
+                            <div className="grid grid-cols-3 gap-2">
+                                {/* Codeforces */}
+                                <div className="space-y-1.5">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-cf font-bold uppercase tracking-wider text-[8px]">CF</span>
+                                        <span className="text-zinc-600 text-[8px]">+45</span>
+                                    </div>
+                                    <div className="h-14 relative border-b border-l border-zinc-800/60">
+                                        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                            <path d="M 0 90 L 20 75 L 40 80 L 60 55 L 80 45 L 100 20" fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    </div>
+                                    <div className="text-cf font-bold text-[9px]">2,142</div>
                                 </div>
-                                <svg className="absolute inset-0 w-full h-full opacity-60" viewBox="0 0 100 100" preserveAspectRatio="none">
-                                    <path d="M 0 80 Q 25 50, 50 40 T 100 15" fill="none" stroke="#3b82f6" strokeWidth="2" />
-                                    <path d="M 0 90 Q 30 70, 60 40 T 100 30" fill="none" stroke="#f97316" strokeWidth="2" />
-                                </svg>
-                                <div className="absolute left-[30%] bottom-[45%] w-2 h-2 rounded-full bg-cf" />
-                                <div className="absolute left-[70%] bottom-[65%] w-2 h-2 rounded-full bg-lc" />
+                                {/* LeetCode */}
+                                <div className="space-y-1.5">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-lc font-bold uppercase tracking-wider text-[8px]">LC</span>
+                                        <span className="text-zinc-600 text-[8px]">+22</span>
+                                    </div>
+                                    <div className="h-14 relative border-b border-l border-zinc-800/60">
+                                        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                            <path d="M 0 85 L 20 70 L 40 65 L 60 50 L 80 40 L 100 25" fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    </div>
+                                    <div className="text-lc font-bold text-[9px]">2,845</div>
+                                </div>
+                                {/* CodeChef */}
+                                <div className="space-y-1.5">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-cc font-bold uppercase tracking-wider text-[8px]">CC</span>
+                                        <span className="text-zinc-600 text-[8px]">+18</span>
+                                    </div>
+                                    <div className="h-14 relative border-b border-l border-zinc-800/60">
+                                        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                            <path d="M 0 80 L 20 78 L 40 60 L 60 55 L 80 42 L 100 30" fill="none" stroke="#a78bfa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    </div>
+                                    <div className="text-cc font-bold text-[9px]">2,390</div>
+                                </div>
                             </div>
                         </div>
                     </div>

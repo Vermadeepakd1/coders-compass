@@ -4,6 +4,7 @@ import { Compass, Search, ExternalLink, Filter, HelpCircle, Sliders, Cpu } from 
 
 //leetcode problem tags
 const TAGS = [
+    { label: "🎲 Random Topic", value: "random" },
     { label: "Arrays", value: "array" },
     { label: "Dynamic Programming", value: "dynamic-programming" },
     { label: "Strings", value: "string" },
@@ -29,7 +30,7 @@ const TAGS = [
 ];
 
 const LeetCodeExplorer = () => {
-    const [tag, setTag] = useState(TAGS[0].value);
+    const [tag, setTag] = useState("random");
     const [difficulty, setDifficulty] = useState("MEDIUM");
     const [platform, setPlatform] = useState("leetcode");
     const [timeLimit, setTimeLimit] = useState("all");
@@ -41,9 +42,21 @@ const LeetCodeExplorer = () => {
         setLoading(true);
         setProblems([]); // Clear old results
         try {
+            let selectedTag = tag;
+            if (tag === "random") {
+                const availableTags = TAGS.filter(t => t.value !== "random");
+                const randomIdx = Math.floor(Math.random() * availableTags.length);
+                selectedTag = availableTags[randomIdx].value;
+            }
+            let selectedDifficulty = difficulty;
+            if (difficulty === "RANDOM") {
+                const difficulties = ["EASY", "MEDIUM", "HARD"];
+                selectedDifficulty = difficulties[Math.floor(Math.random() * difficulties.length)];
+            }
+
             // LeetCode active search
             if (platform === "leetcode") {
-                const data = await getLeetCodeSuggestions(tag, difficulty);
+                const data = await getLeetCodeSuggestions(selectedTag, selectedDifficulty);
                 // Apply local query filter if exists
                 let filtered = data;
                 if (query) {
@@ -123,6 +136,7 @@ const LeetCodeExplorer = () => {
                         <option value="EASY">Easy</option>
                         <option value="MEDIUM">Medium</option>
                         <option value="HARD">Hard</option>
+                        <option value="RANDOM">🎲 Random Difficulty</option>
                     </select>{' '}
                     targeted under{' '}
                     <select

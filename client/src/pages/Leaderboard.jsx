@@ -118,7 +118,7 @@ const Leaderboard = () => {
                                         #{myRank}
                                     </span>
                                     <span className="text-zinc-500 text-sm font-sans">
-                                        of {sortedRows.length} competitors
+                                        of {sortedRows.length} {sortedRows.length < 10 ? 'friends' : 'competitors'}
                                     </span>
                                 </div>
                                 <div className="text-zinc-400 text-sm mt-1">
@@ -195,10 +195,38 @@ const Leaderboard = () => {
                     </section>
                 )}
 
+                {/* Invite CTA — shown when leaderboard has fewer than 10 members */}
+                {!loading && sortedRows.length < 10 && (
+                    <section className="card-bordered border-l-2 border-l-ai animate-entry-delay-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                            <div className="flex-1">
+                                <div className="text-[9px] font-mono text-ai uppercase tracking-widest mb-1">Friends Leaderboard</div>
+                                <h3 className="text-sm font-semibold text-zinc-100 font-geist">
+                                    Your board is just getting started.
+                                </h3>
+                                <p className="text-[10px] text-zinc-500 font-sans mt-1 leading-relaxed">
+                                    Invite peers to compete. A leaderboard gets interesting at 10+ members — share your workspace link to grow it.
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    navigator.clipboard.writeText(window.location.origin);
+                                    toast.success('Invite link copied to clipboard!');
+                                }}
+                                className="btn-secondary flex items-center gap-1.5 shrink-0 text-ai border-ai/30 hover:border-ai/60"
+                            >
+                                Copy Invite Link
+                            </button>
+                        </div>
+                    </section>
+                )}
+
                 {/* Page header */}
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                     <div className="flex-1">
-                        <h1 className="text-xl font-semibold text-zinc-100 font-geist">Leaderboard</h1>
+                        <h1 className="text-xl font-semibold text-zinc-100 font-geist">
+                            {sortedRows.length < 10 ? 'Friends Leaderboard' : 'Leaderboard'}
+                        </h1>
                         <p className="text-[10px] text-zinc-600 font-mono uppercase tracking-wider mt-0.5">{scoreHint}</p>
                     </div>
                     <div className="flex items-center gap-2">

@@ -56,12 +56,13 @@ export const getRatingHistory = async (cfHandle, lcHandle, ccHandle) => {
 };
 
 //get cf recommendations
-export const getRecommendations = async (handle) => {
+export const getRecommendations = async (handle, refresh = false) => {
   try {
     const token = localStorage.getItem("token");
     const response = await axios.get(
       `${base_url}/api/platforms/codeforces/recommend/${handle}`,
       {
+        params: refresh ? { refresh: true } : {},
         headers: {
           Authorization: `Bearer ${token}`,
         },

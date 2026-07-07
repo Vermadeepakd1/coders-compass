@@ -12,6 +12,8 @@ const {
   fetchLeetCodeFilter,
   fetchLeetCodeRating,
   fetchLeetCodeHistory,
+  fetchLeetCodeWeakTopic,
+  fetchLeetCodeRecentSubmissions,
 } = require("../services/leetcodeService");
 const {
   fetchCodeChefStats,
@@ -36,10 +38,11 @@ const getTodayDate = () => {
 router.get("/codeforces/recommend/:handle", protect, async (req, res) => {
   try {
     const { handle } = req.params;
+    const forceRefresh = req.query.refresh === "true";
     if (!handle || handle.trim() === "") {
       return res.status(400).json({ message: "Handle is required" });
     }
-    const rec = await getRecommendations(handle);
+    const rec = await getRecommendations(handle, forceRefresh);
     return res.status(200).json({ recommendations: rec });
   } catch (error) {
     console.error("Error getting recommendations:", error.message);
@@ -254,7 +257,7 @@ const handleCombinedStats = async (req, res) => {
       ccHandle && ccHandle !== "null" && ccHandle !== "undefined";
 
     // Parallel Fetching
-    const [cfStats, cfStatus, lcRating, lcCalendar, lcSolves, ccStats] =
+    const [cfStats, cfStatus, lcRating, lcCalendar, lcSolves, ccStats, lcWeakTopic, lcRecent] =
       await Promise.all([
         isCfValid
           ? calculateCFStats(cfHandle).catch(() => ({
@@ -316,6 +319,12 @@ const handleCombinedStats = async (req, res) => {
               stars: null,
               totalSolved: 0,
             }),
+        isLcValid
+          ? fetchLeetCodeWeakTopic(lcHandle).catch(() => null)
+          : Promise.resolve(null),
+        isLcValid
+          ? fetchLeetCodeRecentSubmissions(lcHandle).catch(() => [])
+          : Promise.resolve([]),
       ]);
 
     // --- MERGE LOGIC ---
@@ -331,6 +340,33 @@ const handleCombinedStats = async (req, res) => {
       const date = new Date(parseInt(ts) * 1000).toISOString().split("T")[0];
       mergedHeatmap[date] = (mergedHeatmap[date] || 0) + count;
     });
+
+    // Override today's LC count with actual unique solved count from recent submissions
+    if (isLcValid && lcRecent && lcRecent.length > 0) {
+      const todayStr = new Date().toISOString().split("T")[0];
+      const todayAcProblems = new Set();
+      lcRecent.forEach((sub) => {
+        if (sub.statusDisplay === "Accepted") {
+          const subDate = new Date(sub.timestamp * 1000).toISOString().split("T")[0];
+          if (subDate === todayStr) {
+            todayAcProblems.add(sub.titleSlug || sub.title);
+          }
+        }
+      });
+
+      // Find raw today's count added by lcCalendar
+      let rawTodayCount = 0;
+      Object.entries(lcCalendar).forEach(([ts, count]) => {
+        const date = new Date(parseInt(ts) * 1000).toISOString().split("T")[0];
+        if (date === todayStr) {
+          rawTodayCount += count;
+        }
+      });
+
+      // Adjust heatmap
+      mergedHeatmap[todayStr] = (mergedHeatmap[todayStr] || 0) - rawTodayCount + todayAcProblems.size;
+      if (mergedHeatmap[todayStr] < 0) mergedHeatmap[todayStr] = 0;
+    }
 
     // Format for Frontend
     const heatmapArray = Object.keys(mergedHeatmap).map((date) => ({
@@ -385,6 +421,7 @@ const handleCombinedStats = async (req, res) => {
         easy: lcSolves.easy,
         medium: lcSolves.medium,
         hard: lcSolves.hard,
+        weakestSkill: lcWeakTopic,
       },
       codechef: {
         solved: ccStats.totalSolved || 0,

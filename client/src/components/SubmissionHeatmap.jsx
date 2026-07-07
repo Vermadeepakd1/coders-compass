@@ -55,20 +55,20 @@ const SubmissionHeatmap = ({ data, streak = 0 }) => {
                     )}
 
                     <div className="flex items-center gap-1 text-[10px]">
-                        <CalendarDays size={11} className="text-zinc-600" />
-                        <span className="text-zinc-450">{stats.activeDays}</span>
-                        <span className="text-zinc-500 uppercase tracking-widest"> active</span>
+                        <CalendarDays size={11} className="text-zinc-400" />
+                        <span className="text-zinc-300 font-bold">{stats.activeDays}</span>
+                        <span className="text-zinc-400 uppercase tracking-widest"> active</span>
                     </div>
 
                     <div className="flex items-center gap-1 text-[10px]">
-                        <Zap size={11} className="text-zinc-600" />
-                        <span className="text-zinc-500">{stats.totalSubmissions}</span>
-                        <span className="text-zinc-700 uppercase tracking-widest"> total</span>
+                        <Zap size={11} className="text-zinc-400" />
+                        <span className="text-zinc-300 font-bold">{stats.totalSubmissions}</span>
+                        <span className="text-zinc-450 uppercase tracking-widest"> total</span>
                     </div>
 
                     <div className="text-[10px] hidden sm:block">
-                        <span className="text-zinc-700 uppercase tracking-widest">best </span>
-                        <span className="text-zinc-400">{stats.maxStreak}d</span>
+                        <span className="text-zinc-450 uppercase tracking-widest">best </span>
+                        <span className="text-zinc-300 font-bold">{stats.maxStreak}d</span>
                     </div>
                 </div>
             </div>
@@ -98,11 +98,11 @@ const SubmissionHeatmap = ({ data, streak = 0 }) => {
 
             {/* Legend */}
             <div className="flex items-center gap-1.5 mt-3 justify-end">
-                <span className="text-[9px] text-zinc-500 uppercase tracking-widest">less</span>
+                <span className="text-[9px] text-zinc-400 uppercase tracking-widest">less</span>
                 {['bg-zinc-900', 'bg-[#451a03]', 'bg-[#92400e]', 'bg-[#c2410c]', 'bg-streak'].map((cls, i) => (
                     <span key={i} className={`w-3 h-3 rounded-sm ${cls}`} />
                 ))}
-                <span className="text-[9px] text-zinc-500 uppercase tracking-widest">more</span>
+                <span className="text-[9px] text-zinc-400 uppercase tracking-widest">more</span>
             </div>
 
             <Tooltip

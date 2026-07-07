@@ -46,7 +46,7 @@ const ActivityGraph = ({ data = [], platform = 'codeforces', color = '#3b82f6', 
         if (isPeak) return (
             <g>
                 <circle cx={cx} cy={cy} r={3} fill="#09090b" stroke={resolvedColor} strokeWidth={1.5} strokeDasharray="2 1" />
-                <text x={cx} y={cy - 8} textAnchor="middle" fill="#52525b" fontSize={8} fontFamily="JetBrains Mono, monospace">
+                <text x={cx} y={cy - 8} textAnchor="middle" fill="#71717a" fontSize={8} fontFamily="JetBrains Mono, monospace">
                     peak {payload.rating}
                 </text>
             </g>
@@ -80,11 +80,11 @@ const ActivityGraph = ({ data = [], platform = 'codeforces', color = '#3b82f6', 
                         <CartesianGrid strokeDasharray="3 0" stroke="#1c1c1e" vertical={false} />
                         <XAxis
                             dataKey="displayDate"
-                            tick={{ fill: '#3f3f46', fontSize: 8, fontFamily: 'JetBrains Mono' }}
+                            tick={{ fill: '#71717a', fontSize: 8, fontFamily: 'JetBrains Mono' }}
                             tickLine={false} axisLine={false} dy={4} minTickGap={40}
                         />
                         <YAxis
-                            tick={{ fill: '#3f3f46', fontSize: 8, fontFamily: 'JetBrains Mono' }}
+                            tick={{ fill: '#71717a', fontSize: 8, fontFamily: 'JetBrains Mono' }}
                             tickLine={false} axisLine={false}
                             domain={['dataMin - 80', 'dataMax + 80']}
                         />
