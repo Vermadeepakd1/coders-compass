@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom';
+import apiClient from '../services/apiClient';
 import { Cpu, User, MessageSquare, ShieldAlert, Terminal, Code, Hash, ChevronRight } from 'lucide-react';
 
 const Register = () => {
@@ -32,23 +33,12 @@ const Register = () => {
         };
 
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/register`, {
-                method: "POST",
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload),
-            });
-            const body = await res.json().catch(() => ({}));
-            if (!res.ok) {
-                throw new Error(body.error || body.message || res.statusText || `Status ${res.status}`);
-            }
-
+            await apiClient.post('/api/auth/register', payload);
             navigate("/login");
-
         } catch (error) {
             console.error("Registration error:", error);
-            alert(error.message || "Registration failed");
+            const errorMsg = error.response?.data?.error || error.response?.data?.message || error.message || "Registration failed";
+            alert(errorMsg);
         }
     };
 

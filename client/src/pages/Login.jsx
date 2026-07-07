@@ -2,6 +2,7 @@ import { useState, useContext } from "react";
 import React from 'react'
 import { useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import apiClient from "../services/apiClient";
 import { Cpu, MessageSquare, ShieldAlert, ChevronRight } from 'lucide-react';
 
 const Login = () => {
@@ -31,17 +32,8 @@ const Login = () => {
         };
 
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
-                method: "POST",
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload),
-            });
-            const body = await res.json().catch(() => ({}));
-            if (!res.ok) {
-                throw new Error(body.error || body.message || res.statusText || `Status ${res.status}`);
-            }
+            const res = await apiClient.post('/api/auth/login', payload);
+            const body = res.data;
             const userData = body.user || body;
             const token = body.token || body.accessToken;
 
@@ -53,7 +45,8 @@ const Login = () => {
             navigate('/dashboard');
 
         } catch (error) {
-            setError(error.message || "Login Failed");
+            const errorMsg = error.response?.data?.error || error.response?.data?.message || error.message || "Login Failed";
+            setError(errorMsg);
         } finally {
             setIsLoading(false);
         }

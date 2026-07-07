@@ -1,45 +1,20 @@
-import axios from "axios";
+import apiClient from "./apiClient";
 
-const base_url = import.meta.env.VITE_API_URL;
-
-// Helper function to get auth headers
-const getAuthHeaders = () => {
-  const token = localStorage.getItem("token");
-  if (!token) {
-    console.warn("No token found in localStorage");
-    return { headers: {} };
-  }
-  return {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  };
-};
-
-// get codeforce stats
+// get codeforces stats
 export const getCodeforcesStats = async (handle) => {
-  const response = await axios.get(
-    `${base_url}/api/platforms/codeforces/${handle}`,
-    { ...getAuthHeaders(), timeout: 20000 },
-  );
+  const response = await apiClient.get(`/api/platforms/codeforces/${handle}`);
   return response.data;
 };
 
-//get leetcode stats
+// get leetcode stats
 export const getLeetCodeStats = async (handle) => {
-  const response = await axios.get(
-    `${base_url}/api/platforms/leetcode/${handle}`,
-    { ...getAuthHeaders(), timeout: 20000 },
-  );
+  const response = await apiClient.get(`/api/platforms/leetcode/${handle}`);
   return response.data;
 };
 
 // get codechef stats
 export const getCodeChefStats = async (handle) => {
-  const response = await axios.get(
-    `${base_url}/api/platforms/codechef/${handle}`,
-    { ...getAuthHeaders(), timeout: 20000 },
-  );
+  const response = await apiClient.get(`/api/platforms/codechef/${handle}`);
   return response.data;
 };
 
@@ -48,26 +23,20 @@ export const getRatingHistory = async (cfHandle, lcHandle, ccHandle) => {
   const cf = cfHandle || "null";
   const lc = lcHandle || "null";
   const cc = ccHandle || "null";
-  const response = await axios.get(
-    `${base_url}/api/platforms/rating-history/${cf}/${lc}/${cc}`,
-    { ...getAuthHeaders(), timeout: 40000 },
+  const response = await apiClient.get(
+    `/api/platforms/rating-history/${cf}/${lc}/${cc}`
   );
   return response.data;
 };
 
-//get cf recommendations
+// get cf recommendations
 export const getRecommendations = async (handle, refresh = false) => {
   try {
-    const token = localStorage.getItem("token");
-    const response = await axios.get(
-      `${base_url}/api/platforms/codeforces/recommend/${handle}`,
+    const response = await apiClient.get(
+      `/api/platforms/codeforces/recommend/${handle}`,
       {
         params: refresh ? { refresh: true } : {},
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        timeout: 45000,
-      },
+      }
     );
     return response.data;
   } catch (error) {
@@ -76,19 +45,12 @@ export const getRecommendations = async (handle, refresh = false) => {
   }
 };
 
-//get lc recommendations
+// get lc suggestions
 export const getLeetCodeSuggestions = async (tag, difficulty) => {
   try {
-    const token = localStorage.getItem("token");
-    const response = await axios.get(
-      `${base_url}/api/platforms/leetcode/explore`,
-      {
-        params: { tag, difficulty },
-        headers: { Authorization: `Bearer ${token}` },
-        timeout: 20000,
-      },
-    );
-
+    const response = await apiClient.get(`/api/platforms/leetcode/explore`, {
+      params: { tag, difficulty },
+    });
     return response.data;
   } catch (error) {
     console.error("Error fetching LC Suggestions:", error);
@@ -102,15 +64,8 @@ export const getCombinedStats = async (cfHandle, lcHandle, ccHandle) => {
     const cf = cfHandle || "null";
     const lc = lcHandle || "null";
     const cc = ccHandle || "null";
-    const token = localStorage.getItem("token");
-    const response = await axios.get(
-      `${base_url}/api/platforms/combined/${cf}/${lc}/${cc}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        timeout: 45000,
-      },
+    const response = await apiClient.get(
+      `/api/platforms/combined/${cf}/${lc}/${cc}`
     );
     return response.data;
   } catch (error) {

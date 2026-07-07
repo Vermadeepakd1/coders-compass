@@ -1,15 +1,4 @@
-import axios from "axios";
-
-const baseUrl = import.meta.env.VITE_API_URL;
-
-const getAuthHeaders = () => {
-  const token = localStorage.getItem("token");
-  return {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  };
-};
+import apiClient from "./apiClient";
 
 export const getUpcomingContests = async (platforms = []) => {
   const params = {};
@@ -17,10 +6,8 @@ export const getUpcomingContests = async (platforms = []) => {
     params.platforms = platforms.join(",");
   }
 
-  const response = await axios.get(`${baseUrl}/api/contests/upcoming`, {
-    ...getAuthHeaders(),
+  const response = await apiClient.get("/api/contests/upcoming", {
     params,
-    timeout: 20000,
   });
 
   return response.data;
