@@ -42,27 +42,10 @@ const LeetCodeExplorer = () => {
         setLoading(true);
         setProblems([]); // Clear old results
         try {
-            let selectedTag = tag;
-            if (tag === "random") {
-                const availableTags = TAGS.filter(t => t.value !== "random");
-                const randomIdx = Math.floor(Math.random() * availableTags.length);
-                selectedTag = availableTags[randomIdx].value;
-            }
-            let selectedDifficulty = difficulty;
-            if (difficulty === "RANDOM") {
-                const difficulties = ["EASY", "MEDIUM", "HARD"];
-                selectedDifficulty = difficulties[Math.floor(Math.random() * difficulties.length)];
-            }
-
             // LeetCode active search
             if (platform === "leetcode") {
-                const data = await getLeetCodeSuggestions(selectedTag, selectedDifficulty);
-                // Apply local query filter if exists
-                let filtered = data;
-                if (query) {
-                    filtered = data.filter(p => p.title.toLowerCase().includes(query.toLowerCase()));
-                }
-                setProblems(filtered);
+                const data = await getLeetCodeSuggestions(tag, difficulty, query);
+                setProblems(data);
             } else {
                 // Codeforces mock suggestion mapping to fit the interactive builder feel
                 setTimeout(() => {

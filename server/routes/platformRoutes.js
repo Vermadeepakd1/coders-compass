@@ -104,8 +104,8 @@ router.get("/codeforces/:handle", protect, async (req, res) => {
 // GET /api/platforms/leetcode/explore?tag=dp&difficulty=medium
 router.get("/leetcode/explore", protect, async (req, res) => {
   try {
-    const { tag, difficulty } = req.query;
-    const problems = await fetchLeetCodeFilter(tag, difficulty);
+    const { tag, difficulty, q } = req.query;
+    const problems = await fetchLeetCodeFilter(tag, difficulty, q);
     res.json(problems);
   } catch (error) {
     console.error("Error fetching LC explore:", error.message);

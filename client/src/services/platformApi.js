@@ -46,10 +46,10 @@ export const getRecommendations = async (handle, refresh = false) => {
 };
 
 // get lc suggestions
-export const getLeetCodeSuggestions = async (tag, difficulty) => {
+export const getLeetCodeSuggestions = async (tag, difficulty, q) => {
   try {
     const response = await apiClient.get(`/api/platforms/leetcode/explore`, {
-      params: { tag, difficulty },
+      params: { tag, difficulty, q },
     });
     return response.data;
   } catch (error) {

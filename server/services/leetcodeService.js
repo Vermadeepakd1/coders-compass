@@ -107,17 +107,28 @@ const fetchLeetCodeStats = async (handle) => {
 };
 
 // to get leetcode questions of specific topic
-const fetchLeetCodeFilter = async (tag, difficulty) => {
-  // Cache key based on tag and difficulty
-  const cacheKey = `lc:filter:${tag}:${difficulty || "all"}`;
+const fetchLeetCodeFilter = async (tag, difficulty, searchKey = "") => {
+  const isTagRandom = !tag || tag.toLowerCase() === "random";
+  const isDifficultyRandom = !difficulty || difficulty.toUpperCase() === "RANDOM" || difficulty.toUpperCase() === "ALL";
+
+  // Cache key based on tag, difficulty, and searchKey
+  const cacheKey = `lc:filter:${isTagRandom ? "random" : tag}:${isDifficultyRandom ? "random" : difficulty}:${searchKey || "none"}`;
 
   try {
     const cached = await redis.get(cacheKey);
     if (cached) return JSON.parse(cached);
   } catch (e) {}
 
-  // 1. Map difficulty to LeetCode's format (UPPERCASE)
-  const difficultyUpper = difficulty ? difficulty.toUpperCase() : "MEDIUM";
+  const filters = {};
+  if (!isTagRandom) {
+    filters.tags = [tag.toLowerCase().replace(/\s+/g, "-")];
+  }
+  if (!isDifficultyRandom) {
+    filters.difficulty = difficulty.toUpperCase();
+  }
+  if (searchKey) {
+    filters.searchKeywords = searchKey;
+  }
 
   const query = `
       query problemsetQuestionList($categorySlug: String, $limit: Int, $skip: Int, $filters: QuestionListFilterInput) {
@@ -144,14 +155,10 @@ const fetchLeetCodeFilter = async (tag, difficulty) => {
     `;
 
   const variables = {
-    categorySlug: "", // or "algorithms"
+    categorySlug: "",
     skip: 0,
-    limit: 50, // Fetch 50, we will pick random ones from this list
-    filters: {
-      // If tag is provided, use it. LeetCode expects an array of tag slugs.
-      tags: tag ? [tag.toLowerCase().replace(/\s+/g, "-")] : [],
-      difficulty: difficultyUpper,
-    },
+    limit: 50,
+    filters,
   };
 
   try {

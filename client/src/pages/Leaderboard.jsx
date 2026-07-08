@@ -87,6 +87,25 @@ const Leaderboard = () => {
     const safePage   = Math.min(page, totalPages);
     const pageRows   = sortedRows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
+    // Compute dynamic highlight leaders
+    const topSpikeUser = useMemo(() => {
+        if (!sortedRows || sortedRows.length === 0) return null;
+        const sortedBySpike = [...sortedRows].sort((a, b) => (b.cfRatingDelta || 0) - (a.cfRatingDelta || 0));
+        return sortedBySpike[0];
+    }, [sortedRows]);
+
+    const streakLeaderUser = useMemo(() => {
+        if (!sortedRows || sortedRows.length === 0) return null;
+        const sortedByStreak = [...sortedRows].sort((a, b) => (b.activityDays || 0) - (a.activityDays || 0));
+        return sortedByStreak[0];
+    }, [sortedRows]);
+
+    const volumeLeaderUser = useMemo(() => {
+        if (!sortedRows || sortedRows.length === 0) return null;
+        const sortedByVolume = [...sortedRows].sort((a, b) => (b.solvedDelta || 0) - (a.solvedDelta || 0));
+        return sortedByVolume[0];
+    }, [sortedRows]);
+
     const scoreHint = metric === "ccScore"
         ? "Combines DSA progress, contest performance, and consistency."
         : `Ranked by ${METRICS.find(m => m.key === metric)?.label || metric}.`;
@@ -156,11 +175,17 @@ const Leaderboard = () => {
                             </div>
                             <div className="flex items-baseline gap-2">
                                 <span className="text-base font-bold text-zinc-100">
-                                    {sortedRows[0]?.username || "tourist"}
+                                    {topSpikeUser?.username || "tourist"}
                                 </span>
-                                <span className="text-[10px] text-growth font-mono">+68 rating</span>
+                                <span className="text-[10px] text-growth font-mono">
+                                    {topSpikeUser?.cfRatingDelta && topSpikeUser.cfRatingDelta > 0 
+                                        ? `+${Math.round(topSpikeUser.cfRatingDelta)}` 
+                                        : Math.round(topSpikeUser?.cfRatingDelta || 0)} rating
+                                </span>
                             </div>
-                            <p className="text-[9px] text-zinc-500 font-sans mt-1">Highest Codeforces rating jump logged this week.</p>
+                            <p className="text-[9px] text-zinc-500 font-sans mt-1">
+                                Highest Codeforces rating jump logged {windowKey === 'weekly' ? 'this week' : windowKey === 'monthly' ? 'this month' : 'recently'}.
+                            </p>
                         </div>
 
                         {/* Consistency Champion */}
@@ -171,9 +196,11 @@ const Leaderboard = () => {
                             </div>
                             <div className="flex items-baseline gap-2">
                                 <span className="text-base font-bold text-zinc-100">
-                                    {sortedRows.find(r => r.cfHandle)?.username || "Gennady"}
+                                    {streakLeaderUser?.username || "Gennady"}
                                 </span>
-                                <span className="text-[10px] text-streak font-mono">38 days</span>
+                                <span className="text-[10px] text-streak font-mono">
+                                    {streakLeaderUser?.activityDays || 0} days
+                                </span>
                             </div>
                             <p className="text-[9px] text-zinc-500 font-sans mt-1">Longest active consistency index in the workspace.</p>
                         </div>
@@ -186,11 +213,15 @@ const Leaderboard = () => {
                             </div>
                             <div className="flex items-baseline gap-2">
                                 <span className="text-base font-bold text-zinc-100">
-                                    {sortedRows[Math.min(2, sortedRows.length - 1)]?.username || "neal"}
+                                    {volumeLeaderUser?.username || "neal"}
                                 </span>
-                                <span className="text-[10px] text-growth font-mono">+32 solved</span>
+                                <span className="text-[10px] text-growth font-mono">
+                                    +{volumeLeaderUser?.solvedDelta || 0} solved
+                                </span>
                             </div>
-                            <p className="text-[9px] text-zinc-500 font-sans mt-1">Most unique problems solved across platforms.</p>
+                            <p className="text-[9px] text-zinc-500 font-sans mt-1">
+                                Most unique problems solved {windowKey === 'weekly' ? 'this week' : windowKey === 'monthly' ? 'this month' : 'recently'}.
+                            </p>
                         </div>
                     </section>
                 )}

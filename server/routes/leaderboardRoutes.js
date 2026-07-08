@@ -33,7 +33,7 @@ const getWindowConfig = (windowKey) => {
   return { start, end, days: 90 };
 };
 
-const calculateGlobalScore = (latest, consistencyDays) => {
+const calculateGlobalScore = (first, latest, consistencyDays) => {
   const cfRating = toNumber(latest?.codeforces?.rating);
   const lcRating = toNumber(latest?.leetcode?.rating);
   const ccRating = toNumber(latest?.codechef?.rating);
@@ -48,6 +48,21 @@ const calculateGlobalScore = (latest, consistencyDays) => {
   const solvedComponent = clamp(totalSolved / 25, 0, 120);
   const consistencyComponent = clamp((consistencyDays / 30) * 80, 0, 80);
 
+  const cfRatingDelta = toNumber(latest?.codeforces?.rating) - toNumber(first?.codeforces?.rating);
+  const solvedDelta =
+    Math.max(
+      0,
+      toNumber(latest?.codeforces?.solved) - toNumber(first?.codeforces?.solved),
+    ) +
+    Math.max(
+      0,
+      toNumber(latest?.leetcode?.totalSolved) - toNumber(first?.leetcode?.totalSolved),
+    ) +
+    Math.max(
+      0,
+      toNumber(latest?.codechef?.totalSolved) - toNumber(first?.codechef?.totalSolved),
+    );
+
   return {
     ccScore: Math.round(
       normalizedRating + solvedComponent + consistencyComponent,
@@ -56,6 +71,8 @@ const calculateGlobalScore = (latest, consistencyDays) => {
     cfRating,
     lcRating,
     ccRating,
+    cfRatingDelta,
+    solvedDelta,
   };
 };
 
@@ -108,6 +125,8 @@ const calculateWindowScore = (first, latest, activeDays, days) => {
     cfRating: toNumber(latest?.codeforces?.rating),
     lcRating: toNumber(latest?.leetcode?.rating),
     ccRating: toNumber(latest?.codechef?.rating),
+    cfRatingDelta,
+    solvedDelta,
   };
 };
 
@@ -160,7 +179,7 @@ router.get("/", protect, async (req, res) => {
 
         const scoreData =
           windowKey === "global"
-            ? calculateGlobalScore(latest, entries.length)
+            ? calculateGlobalScore(first, latest, entries.length)
             : calculateWindowScore(first, latest, entries.length, days);
 
         return {
