@@ -29,7 +29,7 @@ const TAGS = [
     { label: "Topological Sort", value: "topological-sort" }
 ];
 
-const LeetCodeExplorer = () => {
+const ProblemExplorer = () => {
     const [tag, setTag] = useState("random");
     const [difficulty, setDifficulty] = useState("MEDIUM");
     const [platform, setPlatform] = useState("leetcode");
@@ -186,4 +186,4 @@ const LeetCodeExplorer = () => {
     );
 };
 
-export default LeetCodeExplorer;
+export default ProblemExplorer;

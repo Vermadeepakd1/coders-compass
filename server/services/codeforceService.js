@@ -255,7 +255,10 @@ const getRecommendations = async (handle, forceRefresh = false) => {
     // Fill the remaining recommendations from other suitable problems
     const remaining = suitableProblems.filter((p) => !selected.includes(p));
     const shuffledRemaining = shuffleArray(remaining);
-    const recommendations = [...selected, ...shuffledRemaining].slice(0, 3);
+    const recommendations = [...selected, ...shuffledRemaining].slice(0, 3).map((p) => {
+      const plain = p.toObject ? p.toObject() : p;
+      return { ...plain, platform: "codeforces" };
+    });
 
     // Save to Redis (24 hours cache)
     try {

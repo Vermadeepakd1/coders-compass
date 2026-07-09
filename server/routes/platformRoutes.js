@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   fetchCFStatus,
   getRecommendations,
+  getCachedProblemSet,
   calculateCFStats,
   fetchCFHistory,
 } = require("../services/codeforceService");
@@ -14,6 +15,7 @@ const {
   fetchLeetCodeHistory,
   fetchLeetCodeWeakTopic,
   fetchLeetCodeRecentSubmissions,
+  getLeetCodeRecommendations,
 } = require("../services/leetcodeService");
 const {
   fetchCodeChefStats,
@@ -39,11 +41,79 @@ router.get("/codeforces/recommend/:handle", protect, async (req, res) => {
   try {
     const { handle } = req.params;
     const forceRefresh = req.query.refresh === "true";
-    if (!handle || handle.trim() === "") {
-      return res.status(400).json({ message: "Handle is required" });
+    
+    // 1. Fetch Codeforces recommendations (2 problems)
+    let cfRecsSliced = [];
+    if (handle && handle.trim() !== "" && handle !== "none" && handle !== "null") {
+      try {
+        const cfRecs = await getRecommendations(handle, forceRefresh);
+        if (cfRecs && cfRecs.length > 0) {
+          cfRecsSliced = cfRecs.slice(0, 2).map((p) => {
+            const plain = p.toObject ? p.toObject() : p;
+            return { ...plain, platform: "codeforces" };
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching CF recommendations:", err.message);
+      }
     }
-    const rec = await getRecommendations(handle, forceRefresh);
-    return res.status(200).json({ recommendations: rec });
+
+    // Fallback if CF recommendations failed or weren't fetched
+    if (cfRecsSliced.length < 2) {
+      try {
+        const allProblems = await getCachedProblemSet();
+        if (allProblems && allProblems.length > 0) {
+          const filtered = allProblems.filter(p => p.rating && p.rating >= 800 && p.rating <= 1500);
+          const sourceList = filtered.length > 0 ? filtered : allProblems;
+          
+          // Shuffle sourceList
+          const shuffled = [...sourceList];
+          for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+          }
+          
+          while (cfRecsSliced.length < 2 && shuffled.length > 0) {
+            const prob = shuffled.pop();
+            const plain = prob.toObject ? prob.toObject() : prob;
+            // Check if already in cfRecsSliced
+            if (!cfRecsSliced.some(r => r.contestId === plain.contestId && r.index === plain.index)) {
+              cfRecsSliced.push({
+                ...plain,
+                platform: "codeforces"
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching CF fallback recommendations:", err.message);
+      }
+    }
+
+    // Fallback if still empty (hardcoded CF problems)
+    if (cfRecsSliced.length < 2) {
+      const cfFallbacks = [
+        { contestId: 4, index: "A", name: "Watermelon", rating: 800, tags: ["brute force"], platform: "codeforces" },
+        { contestId: 71, index: "A", name: "Way Too Long Words", rating: 800, tags: ["strings"], platform: "codeforces" }
+      ];
+      while (cfRecsSliced.length < 2) {
+        cfRecsSliced.push(cfFallbacks[cfRecsSliced.length]);
+      }
+    }
+
+    // 2. Fetch LeetCode recommendations (2 problems)
+    const lcHandle = req.user?.handles?.leetcode;
+    let lcRecs = [];
+    try {
+      lcRecs = await getLeetCodeRecommendations(lcHandle, forceRefresh);
+    } catch (err) {
+      console.error("Error fetching LeetCode recommendations:", err.message);
+    }
+
+    // Combine them (2 Codeforces + 2 LeetCode)
+    const recommendations = [...cfRecsSliced.slice(0, 2), ...lcRecs.slice(0, 2)];
+
+    return res.status(200).json({ recommendations });
   } catch (error) {
     console.error("Error getting recommendations:", error.message);
     return res

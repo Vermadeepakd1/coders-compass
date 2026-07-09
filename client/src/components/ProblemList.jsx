@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ExternalLink, Target, Bookmark, Star } from 'lucide-react';
 
-const ProblemList = ({ problems, cfHandle }) => {
+const ProblemList = ({ problems, cfHandle, lcHandle }) => {
     const [bookmarked, setBookmarked] = useState(new Set());
 
     const toggleBookmark = (id) => {
@@ -12,13 +12,13 @@ const ProblemList = ({ problems, cfHandle }) => {
         });
     };
 
-    // Case 1: No Codeforces Handle Linked
-    if (!cfHandle) {
+    // Case 1: Neither Codeforces nor LeetCode Handle Linked
+    if (!cfHandle && !lcHandle) {
         return (
             <div className="border border-brand-border bg-brand-surface p-6 rounded text-center font-mono text-xs text-zinc-400">
-                <h3 className="font-semibold text-zinc-200 uppercase tracking-wider mb-2">Link Codeforces Account</h3>
+                <h3 className="font-semibold text-zinc-200 uppercase tracking-wider mb-2">Link Your Accounts</h3>
                 <p className="leading-relaxed mb-4 max-w-xs mx-auto text-zinc-500 font-sans">
-                    Connect your Codeforces handle in profile settings to retrieve automated telemetry recommendations.
+                    Connect your Codeforces or LeetCode handle in profile settings to retrieve automated telemetry recommendations.
                 </p>
             </div>
         );
@@ -42,16 +42,26 @@ const ProblemList = ({ problems, cfHandle }) => {
             <div className="border border-brand-border bg-brand-surface p-6 rounded text-center font-mono text-xs text-zinc-400">
                 <h3 className="font-semibold text-zinc-300 uppercase tracking-wider mb-2">No Recommendation Logged</h3>
                 <p className="leading-relaxed mb-4 max-w-xs mx-auto text-zinc-500 font-sans">
-                    Submit some problems on Codeforces to populate training data.
+                    Submit some problems on Codeforces or LeetCode to populate training data.
                 </p>
-                <a
-                    href="https://codeforces.com/problemset"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-secondary inline-block"
-                >
-                    Visit Codeforces
-                </a>
+                <div className="flex justify-center gap-3">
+                    <a
+                        href="https://codeforces.com/problemset"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-secondary inline-block"
+                    >
+                        Visit Codeforces
+                    </a>
+                    <a
+                        href="https://leetcode.com/problemset"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-secondary inline-block"
+                    >
+                        Visit LeetCode
+                    </a>
+                </div>
             </div>
         );
     }
@@ -72,7 +82,8 @@ const ProblemList = ({ problems, cfHandle }) => {
             {/* Grid of Recommendation Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {problems.map((prob, idx) => {
-                    const probId = `${prob.contestId}-${prob.index}`;
+                    const isLeetCode = prob.platform === 'leetcode';
+                    const probId = isLeetCode ? `leetcode-${prob.index}` : `${prob.contestId}-${prob.index}`;
                     const isBookmarked = bookmarked.has(probId);
                     
                     // Smart dynamic metadata generation
@@ -155,9 +166,18 @@ const ProblemList = ({ problems, cfHandle }) => {
 
                             {/* Middle: Title */}
                             <div className="space-y-1.5">
-                                <h4 className="text-zinc-150 font-sans text-xs font-semibold hover:text-white transition-colors">
-                                    {prob.index}. {prob.name}
-                                </h4>
+                                <div className="flex items-center gap-2">
+                                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase font-mono border ${
+                                        isLeetCode 
+                                            ? 'bg-lc/10 border-lc/30 text-lc' 
+                                            : 'bg-cf/10 border-cf/30 text-cf'
+                                    }`}>
+                                        {isLeetCode ? 'LeetCode' : 'Codeforces'}
+                                    </span>
+                                    <h4 className="text-zinc-150 font-sans text-xs font-semibold hover:text-white transition-colors truncate flex-1">
+                                        {isLeetCode ? prob.name : `${prob.index}. ${prob.name}`}
+                                    </h4>
+                                </div>
                             </div>
 
                             {/* Why? Pill Tags */}
@@ -179,7 +199,9 @@ const ProblemList = ({ problems, cfHandle }) => {
                             {/* Bottom row: Action Solve CTA */}
                             <div className="pt-1.5">
                                 <a
-                                    href={`https://codeforces.com/problemset/problem/${prob.contestId}/${prob.index}`}
+                                    href={isLeetCode 
+                                        ? `https://leetcode.com/problems/${prob.titleSlug}` 
+                                        : `https://codeforces.com/problemset/problem/${prob.contestId}/${prob.index}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="btn-secondary w-full text-[9px] py-1.5 flex items-center justify-center gap-1 font-mono uppercase tracking-wider hover:text-white hover:border-zinc-600 transition-colors"

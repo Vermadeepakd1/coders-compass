@@ -106,6 +106,25 @@ const fetchLeetCodeStats = async (handle) => {
   }
 };
 
+const FALLBACK_LEETCODE_QUESTIONS = [
+  { frontendQuestionId: "1", title: "Two Sum", titleSlug: "two-sum", difficulty: "Easy", acRate: 53.2, topicTags: [{ name: "Array", slug: "array" }, { name: "Hash Table", slug: "hash-table" }] },
+  { frontendQuestionId: "20", title: "Valid Parentheses", titleSlug: "valid-parentheses", difficulty: "Easy", acRate: 40.5, topicTags: [{ name: "String", slug: "string" }, { name: "Stack", slug: "stack" }] },
+  { frontendQuestionId: "21", title: "Merge Two Sorted Lists", titleSlug: "merge-two-sorted-lists", difficulty: "Easy", acRate: 63.5, topicTags: [{ name: "Linked List", slug: "linked-list" }, { name: "Recursion", slug: "recursion" }] },
+  { frontendQuestionId: "121", title: "Best Time to Buy and Sell Stock", titleSlug: "best-time-to-buy-and-sell-stock", difficulty: "Easy", acRate: 54.2, topicTags: [{ name: "Array", slug: "array" }, { name: "Dynamic Programming", slug: "dynamic-programming" }] },
+  { frontendQuestionId: "70", title: "Climbing Stairs", titleSlug: "climbing-stairs", difficulty: "Easy", acRate: 52.8, topicTags: [{ name: "Math", slug: "math" }, { name: "Dynamic Programming", slug: "dynamic-programming" }] },
+  
+  { frontendQuestionId: "2", title: "Add Two Numbers", titleSlug: "add-two-numbers", difficulty: "Medium", acRate: 41.2, topicTags: [{ name: "Linked List", slug: "linked-list" }, { name: "Math", slug: "math" }] },
+  { frontendQuestionId: "3", title: "Longest Substring Without Repeating Characters", titleSlug: "longest-substring-without-repeating-characters", difficulty: "Medium", acRate: 34.8, topicTags: [{ name: "Hash Table", slug: "hash-table" }, { name: "String", slug: "string" }, { name: "Sliding Window", slug: "sliding-window" }] },
+  { frontendQuestionId: "15", title: "3Sum", titleSlug: "3sum", difficulty: "Medium", acRate: 33.2, topicTags: [{ name: "Array", slug: "array" }, { name: "Two Pointers", slug: "two-pointers" }] },
+  { frontendQuestionId: "11", title: "Container With Most Water", titleSlug: "container-with-most-water", difficulty: "Medium", acRate: 54.8, topicTags: [{ name: "Array", slug: "array" }, { name: "Two Pointers", slug: "two-pointers" }] },
+  { frontendQuestionId: "19", title: "Remove Nth Node From End of List", titleSlug: "remove-nth-node-from-end-of-list", difficulty: "Medium", acRate: 42.5, topicTags: [{ name: "Linked List", slug: "linked-list" }, { name: "Two Pointers", slug: "two-pointers" }] },
+  
+  { frontendQuestionId: "4", title: "Median of Two Sorted Arrays", titleSlug: "median-of-two-sorted-arrays", difficulty: "Hard", acRate: 38.5, topicTags: [{ name: "Array", slug: "array" }, { name: "Binary Search", slug: "binary-search" }] },
+  { frontendQuestionId: "10", title: "Regular Expression Matching", titleSlug: "regular-expression-matching", difficulty: "Hard", acRate: 28.2, topicTags: [{ name: "String", slug: "string" }, { name: "Dynamic Programming", slug: "dynamic-programming" }, { name: "Backtracking", slug: "backtracking" }] },
+  { frontendQuestionId: "23", title: "Merge k Sorted Lists", titleSlug: "merge-k-sorted-lists", difficulty: "Hard", acRate: 50.2, topicTags: [{ name: "Linked List", slug: "linked-list" }, { name: "Divide and Conquer", slug: "divide-and-conquer" }, { name: "Heap (Priority Queue)", slug: "heap-priority-queue" }] },
+  { frontendQuestionId: "72", title: "Edit Distance", titleSlug: "edit-distance", difficulty: "Hard", acRate: 54.5, topicTags: [{ name: "String", slug: "string" }, { name: "Dynamic Programming", slug: "dynamic-programming" }] }
+];
+
 // to get leetcode questions of specific topic
 const fetchLeetCodeFilter = async (tag, difficulty, searchKey = "") => {
   const isTagRandom = !tag || tag.toLowerCase() === "random";
@@ -116,7 +135,17 @@ const fetchLeetCodeFilter = async (tag, difficulty, searchKey = "") => {
 
   try {
     const cached = await redis.get(cacheKey);
-    if (cached) return JSON.parse(cached);
+    if (cached) {
+      const cachedQuestions = JSON.parse(cached);
+      if (cachedQuestions && cachedQuestions.length > 0) {
+        // Helper to shuffle array (Fisher-Yates)
+        for (let i = cachedQuestions.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [cachedQuestions[i], cachedQuestions[j]] = [cachedQuestions[j], cachedQuestions[i]];
+        }
+        return cachedQuestions.slice(0, 3);
+      }
+    }
   } catch (e) {}
 
   const filters = {};
@@ -179,16 +208,28 @@ const fetchLeetCodeFilter = async (tag, difficulty, searchKey = "") => {
       }
     );
 
+    let questions = [];
     if (response.data.errors) {
       console.error("LeetCode Filter API Error:", response.data.errors);
-      return [];
+    } else {
+      questions = response.data.data?.problemsetQuestionList?.questions || [];
     }
 
-    const questions =
-      response.data.data?.problemsetQuestionList?.questions || [];
-
-    if (questions.length > 0) {
-      // Cache for 24 hours (problem lists don't change often)
+    if (questions.length === 0) {
+      console.warn("fetchLeetCodeFilter: API returned empty list. Using fallback questions.");
+      // Filter fallbacks by tag and difficulty
+      const searchTag = isTagRandom ? "" : tag.toLowerCase().replace(/\s+/g, "-");
+      questions = FALLBACK_LEETCODE_QUESTIONS.filter((q) => {
+        const matchesTag = isTagRandom || q.topicTags.some((t) => t.slug === searchTag);
+        const matchesDiff = isDifficultyRandom || q.difficulty.toUpperCase() === difficulty.toUpperCase();
+        return matchesTag && matchesDiff;
+      });
+      // If filtering was too strict and returned empty, use all fallbacks matching difficulty
+      if (questions.length === 0) {
+        questions = FALLBACK_LEETCODE_QUESTIONS.filter((q) => isDifficultyRandom || q.difficulty.toUpperCase() === difficulty.toUpperCase());
+      }
+    } else {
+      // Cache the successful API response for 24 hours
       try {
         await redis.set(cacheKey, JSON.stringify(questions), "EX", 86400);
       } catch (e) {}
@@ -204,7 +245,18 @@ const fetchLeetCodeFilter = async (tag, difficulty, searchKey = "") => {
     return questions.slice(0, 3);
   } catch (error) {
     console.error("fetchLeetCodeFilter Error:", error.message);
-    return [];
+    
+    // Use fallback on catch
+    let fallbackQuestions = FALLBACK_LEETCODE_QUESTIONS.filter((q) => {
+      const matchesDiff = isDifficultyRandom || q.difficulty.toUpperCase() === difficulty.toUpperCase();
+      return matchesDiff;
+    });
+    // Shuffle fallback
+    for (let i = fallbackQuestions.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [fallbackQuestions[i], fallbackQuestions[j]] = [fallbackQuestions[j], fallbackQuestions[i]];
+    }
+    return fallbackQuestions.slice(0, 3);
   }
 };
 
@@ -529,6 +581,120 @@ const fetchLeetCodeRecentSubmissions = async (handle) => {
   }
 };
 
+const getLeetCodeRecommendations = async (handle, forceRefresh = false) => {
+  const cacheKey = `lc:recommendations:${handle || "none"}`;
+
+  if (!forceRefresh) {
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) return JSON.parse(cached);
+    } catch (e) {}
+  }
+
+  try {
+    let tag = "random";
+    if (handle && handle.trim() !== "" && handle !== "none") {
+      const weakTopic = await fetchLeetCodeWeakTopic(handle);
+      if (weakTopic && weakTopic.slug) {
+        tag = weakTopic.slug;
+      }
+    }
+
+    if (tag === "random") {
+      const CORE_TAGS = [
+        "dynamic-programming", "greedy", "depth-first-search", "binary-search",
+        "breadth-first-search", "sliding-window", "two-pointers", "backtracking",
+        "trie", "graph", "union-find", "segment-tree"
+      ];
+      tag = CORE_TAGS[Math.floor(Math.random() * CORE_TAGS.length)];
+    }
+
+    // fetchLeetCodeFilter returns up to 3 problems. We will use them.
+    const problems = await fetchLeetCodeFilter(tag, "RANDOM");
+
+    const mapped = (problems || []).slice(0, 2).map((p) => {
+      let rating = 1200;
+      if (p.difficulty === "Easy") rating = 1000;
+      if (p.difficulty === "Medium") rating = 1400;
+      if (p.difficulty === "Hard") rating = 1800;
+
+      return {
+        contestId: "leetcode",
+        index: p.frontendQuestionId || "LC",
+        name: p.title,
+        titleSlug: p.titleSlug,
+        rating,
+        acRate: p.acRate || 50.0,
+        difficulty: p.difficulty,
+        tags: p.topicTags ? p.topicTags.map(t => t.name) : [tag],
+        platform: "leetcode"
+      };
+    });
+
+    if (mapped.length < 2) {
+      const fallbacks = [
+        {
+          contestId: "leetcode",
+          index: "1",
+          name: "Two Sum",
+          titleSlug: "two-sum",
+          rating: 1000,
+          acRate: 53.2,
+          difficulty: "Easy",
+          tags: ["Array", "Hash Table"],
+          platform: "leetcode"
+        },
+        {
+          contestId: "leetcode",
+          index: "3",
+          name: "Longest Substring Without Repeating Characters",
+          titleSlug: "longest-substring-without-repeating-characters",
+          rating: 1400,
+          acRate: 34.8,
+          difficulty: "Medium",
+          tags: ["Hash Table", "String", "Sliding Window"],
+          platform: "leetcode"
+        }
+      ];
+      while (mapped.length < 2) {
+        mapped.push(fallbacks[mapped.length]);
+      }
+    }
+
+    try {
+      await redis.set(cacheKey, JSON.stringify(mapped), "EX", 86400);
+    } catch (e) {}
+
+    return mapped;
+  } catch (error) {
+    console.error("getLeetCodeRecommendations Error:", error.message);
+    return [
+      {
+        contestId: "leetcode",
+        index: "1",
+        name: "Two Sum",
+        titleSlug: "two-sum",
+        rating: 1000,
+        acRate: 53.2,
+        difficulty: "Easy",
+        tags: ["Array", "Hash Table"],
+        platform: "leetcode"
+      },
+      {
+        contestId: "leetcode",
+        index: "3",
+        name: "Longest Substring Without Repeating Characters",
+        titleSlug: "longest-substring-without-repeating-characters",
+        rating: 1400,
+        acRate: 34.8,
+        difficulty: "Medium",
+        tags: ["Hash Table", "String", "Sliding Window"],
+        platform: "leetcode"
+      }
+    ];
+  }
+};
+
 module.exports = {
   fetchLeetCodeStats,
   fetchLeetCodeFilter,
@@ -537,4 +703,5 @@ module.exports = {
   fetchLeetCodeHistory,
   fetchLeetCodeWeakTopic,
   fetchLeetCodeRecentSubmissions,
+  getLeetCodeRecommendations,
 };

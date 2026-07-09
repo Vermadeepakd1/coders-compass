@@ -7,7 +7,7 @@ import { getUpcomingContests } from '../services/contestApi';
 import ActivityGraph from '../components/ActivityGraph';
 import AiCoach from '../components/AiCoach';
 import ProblemList from '../components/ProblemList';
-import LeetCodeExplorer from '../components/LeetCodeExplorer';
+import ProblemExplorer from '../components/ProblemExplorer';
 import SubmissionHeatmap from '../components/SubmissionHeatmap';
 import Skeleton from '../components/Skeleton';
 import EditProfileModal from '../components/EditProfileModal';
@@ -129,7 +129,7 @@ const Dashboard = () => {
         try {
             const [statsResult, recsResult, historyResult] = await Promise.allSettled([
                 getCombinedStats(cf, lc, cc),
-                cf ? getRecommendations(cf, isManual) : Promise.resolve({ recommendations: [] }),
+                (cf || lc) ? getRecommendations(cf || "none", isManual) : Promise.resolve({ recommendations: [] }),
                 getRatingHistory(cf, lc, cc),
             ]);
             if (statsResult.status === 'fulfilled' && statsResult.value) {
@@ -1121,13 +1121,13 @@ const Dashboard = () => {
                     <div className="lg:col-span-2 relative">
                         {/* Overflow guard: scrolls independently when many cards added */}
                         <div className="max-h-[700px] overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-zinc-800 [&::-webkit-scrollbar-thumb]:rounded">
-                            <ProblemList problems={recommendations} cfHandle={cfHandle} />
+                            <ProblemList problems={recommendations} cfHandle={cfHandle} lcHandle={lcHandle} />
                         </div>
                         {/* Fade hint at bottom when overflowing */}
                         <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-brand-bg to-transparent" />
                     </div>
                     <div>
-                        <LeetCodeExplorer />
+                        <ProblemExplorer />
                     </div>
                 </section>
 
